@@ -26,6 +26,7 @@
 #include "services/weather.h"
 #include "services/wifi_setup.h"
 #include "ui/color.h"
+#include "ui/i18n.h"
 #include "ui/model.h"
 #include "ui/pages.h"
 #include "ui/radar_range.h"
@@ -177,6 +178,7 @@ void buildModel() {
 void renderFrame() {
   const unsigned long start = millis();
   ui::g_swap_rb = ui::radar::swapColors();
+  ui::i18n::g_lang = static_cast<ui::i18n::Lang>(ui::radar::language());
   services::SharedLock lock;  // aircraft list is used in place while drawing
   buildModel();
 
@@ -270,12 +272,13 @@ void setup() {
     Serial.println("frame buffer alloc failed — drawing directly (may flicker)");
   }
 
-  if (wifiShowsSetupScreenOnBoot()) {
-    statusScreenPortal();
-  }
   services::location::init();
   ui::radar::rangeInit();
   ui::g_swap_rb = ui::radar::swapColors();
+  ui::i18n::g_lang = static_cast<ui::i18n::Lang>(ui::radar::language());
+  if (wifiShowsSetupScreenOnBoot()) {
+    statusScreenPortal();
+  }
   services::map::init();
 
   wifiSetupConnect();

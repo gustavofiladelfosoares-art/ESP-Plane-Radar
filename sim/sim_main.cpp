@@ -19,6 +19,7 @@
 #include "hardware/display_font.h"
 #include "services/radar_location.h"
 #include "ui/fonts.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 #include "ui/radar_map.h"
 #include "ui/radar_range.h"
@@ -137,6 +138,7 @@ struct Scenario {
   uint32_t duration_ms;
   bool tick_clock;
   bool radius_toast = false;  // pretend the search radius was just changed
+  ui::i18n::Lang lang = ui::i18n::Lang::PT;
 };
 
 void setTime(ui::TimeModel* t, int h, int m, int s, int ms) {
@@ -258,6 +260,19 @@ int main(int argc, char** argv) {
       {"ar_sol", ui::Page::AirSun, base, 4000, false},
       {"sobre", ui::Page::About, base, 6000, false},
   };
+  // Same pages in the other languages (short clips, for checking layouts).
+  const std::pair<const char*, ui::i18n::Lang> langs[] = {
+      {"en", ui::i18n::Lang::EN}, {"es", ui::i18n::Lang::ES}, {"zh", ui::i18n::Lang::ZH}};
+  for (const auto& [suffix, lang] : langs) {
+    for (const auto& [name, page] : {std::pair<const char*, ui::Page>{"radar", ui::Page::Radar},
+                                     {"clima", ui::Page::Weather}, {"relogio", ui::Page::Clock},
+                                     {"aviao", ui::Page::Nearest}, {"ar_sol", ui::Page::AirSun}}) {
+      Scenario s{std::string(name) + "_" + suffix, page, base, 1600, page == ui::Page::Clock};
+      if (page == ui::Page::Weather) s.model.weather.code = 2;
+      s.lang = lang;
+      scenarios.push_back(s);
+    }
+  }
 
   // Same two-band rendering the firmware uses, to check it matches full frames.
   constexpr int kBand = 120;
@@ -305,6 +320,7 @@ int main(int argc, char** argv) {
     for (uint32_t t = 0; t < s.duration_ms; t += kStep) {
       if (s.tick_clock) advance(&s.model.time, start, t);
       if (s.radius_toast) s.model.nearest_radius_changed_ago_ms = t;
+      ui::i18n::g_lang = s.lang;
       const auto a = std::chrono::steady_clock::now();
       s.model.frame_buffer = frame.getBuffer();
       ui::drawPage(s.page, frame, s.model, t);

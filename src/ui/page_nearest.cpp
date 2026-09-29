@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "ui/draw_util.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 
 namespace ui {
@@ -25,27 +26,12 @@ const Rgb kMuted{150, 166, 190};
 
 Rgb bgAt(int y) { return lerp(kTop, kBottom, y / 240.0f); }
 
-const char* compass8(float deg) {
-  static const char* kDirs[] = {"N", "NE", "L", "SE", "S", "SO", "O", "NO"};
-  const int i = static_cast<int>(lroundf(fmodf(deg + 360.0f, 360.0f) / 45.0f)) % 8;
-  return kDirs[i];
-}
-
-/** 10668 -> "10.668" (pt-BR thousands separator). */
+/** 10668 -> "10.668" / "10,668" depending on the language. */
 void groupThousands(char* out, size_t len, int v) {
   if (v >= 1000) {
-    snprintf(out, len, "%d.%03d", v / 1000, v % 1000);
+    snprintf(out, len, "%d%c%03d", v / 1000, i18n::thousandsSep(), v % 1000);
   } else {
     snprintf(out, len, "%d", v);
-  }
-}
-
-void formatDistance(char* out, size_t len, float km) {
-  if (km < 10.0f) {
-    const int tenths = static_cast<int>(lroundf(km * 10.0f));
-    snprintf(out, len, "%d,%d km", tenths / 10, tenths % 10);
-  } else {
-    snprintf(out, len, "%d km", static_cast<int>(lroundf(km)));
   }
 }
 
@@ -113,7 +99,7 @@ void radiusToast(lgfx::LovyanGFX& g, const Model& m) {
   char r[16];
   formatRadius(r, sizeof(r), m.nearest_radius_km);
   char buf[24];
-  snprintf(buf, sizeof(buf), "Raio: %s", r);
+  snprintf(buf, sizeof(buf), i18n::tr(i18n::S::RadiusToastFmt), r);
   draw::text(g, Id::S22, buf, kCx, y + 1, mix(panel, kWhite, out));
 }
 
@@ -136,19 +122,19 @@ void drawEmpty(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   float y = kY - cosf(a * kDegToRad) * kR;
   g.drawLine(kCx, kY, static_cast<int>(x), static_cast<int>(y), rgb(120, 190, 255));
   if (!m.wifi_ok) {
-    draw::text(g, Id::S17, "Sem Wi-Fi", kCx, 172, rgb(230, 238, 250));
-    draw::text(g, Id::S14, "tentando conectar…", kCx, 193, rgb(kMuted));
+    draw::text(g, Id::S17, i18n::tr(i18n::S::NoWifi), kCx, 172, rgb(230, 238, 250));
+    draw::text(g, Id::S14, i18n::tr(i18n::S::TryingToConnect), kCx, 193, rgb(kMuted));
     return;
   }
   char r[16];
   formatRadius(r, sizeof(r), m.nearest_radius_km);
   char buf[32];
-  snprintf(buf, sizeof(buf), "em até %s", r);
-  draw::text(g, Id::S17, "Nenhum avião", kCx, 170, rgb(230, 238, 250));
+  snprintf(buf, sizeof(buf), i18n::tr(i18n::S::WithinFmt), r);
+  draw::text(g, Id::S17, i18n::tr(i18n::S::NoAircraft), kCx, 170, rgb(230, 238, 250));
   draw::text(g, Id::S14, buf, kCx, 190, rgb(kMuted));
   // Gentle blink so the hint gets noticed.
   const float blink = 0.55f + 0.45f * sinf(t * 0.004f);
-  draw::text(g, Id::S14, "2 toques: mudar raio", kCx, 209, mix(bgAt(209), kAccent, blink));
+  draw::text(g, Id::S14, i18n::tr(i18n::S::TwoTapsHint), kCx, 209, mix(bgAt(209), kAccent, blink));
 }
 
 }  // namespace
@@ -199,7 +185,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   const services::adsb::Aircraft& p = m.planes[idx];
   const bool route = m.route.valid && strcmp(m.route.callsign, p.callsign) == 0;
 
-  line(g, Id::S14, "MAIS PRÓXIMO", 30, kAccent, appear(t, 250));
+  line(g, Id::S14, i18n::tr(i18n::S::Nearest), 30, kAccent, appear(t, 250));
   line(g, Id::S28, p.callsign[0] ? p.callsign : "—", 56, kWhite, appear(t, 350));
 
   char buf[48];
@@ -233,7 +219,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     line(g, Id::S14, buf, 134, kMuted, appear(t, 650));
   } else {
     const char* model = route && m.route.airline[0] ? p.desc : p.type;
-    draw::fitText(g, Id::S17, model[0] ? model : "Aeronave", 176, buf, sizeof(buf));
+    draw::fitText(g, Id::S17, model[0] ? model : i18n::tr(i18n::S::Aircraft), 176, buf, sizeof(buf));
     line(g, Id::S17, buf, 112, Rgb{215, 232, 255}, pr);
     if (p.reg[0]) {
       line(g, Id::S14, p.reg, 134, kMuted, appear(t, 650));
@@ -243,9 +229,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   // Which way to look: arrow toward the plane + distance.
   const float pd = appear(t, 750);
   if (pd > 0.0f) {
-    char d[16];
-    formatDistance(d, sizeof(d), dist);
-    snprintf(buf, sizeof(buf), "%s a %s", d, compass8(bearing));
+    i18n::formatDistanceDir(buf, sizeof(buf), dist, i18n::compass8(bearing));
     const int yy = 164 + static_cast<int>((1.0f - pd) * 8.0f);
     const int tw = draw::textWidth(g, Id::S17, buf);
     const int ax = kCx - (tw + 30) / 2 + 10;
@@ -259,7 +243,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
 
   char alt[20];
   if (p.on_ground) {
-    snprintf(alt, sizeof(alt), "No solo");
+    snprintf(alt, sizeof(alt), "%s", i18n::tr(i18n::S::OnGround));
   } else if (p.has_alt) {
     char n[12];
     groupThousands(n, sizeof(n), static_cast<int>(lroundf(p.alt_ft * 0.3048f)));
@@ -272,7 +256,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
 
   char r[16];
   formatRadius(r, sizeof(r), m.nearest_radius_km);
-  snprintf(buf, sizeof(buf), "raio %s", r);
+  snprintf(buf, sizeof(buf), i18n::tr(i18n::S::RadiusFmt), r);
   line(g, Id::S14, buf, 209, kMuted, appear(t, 950));
 
   flyBy(g, t);

@@ -11,6 +11,7 @@
 #include "hardware/display.h"
 #include "hardware/display_font.h"
 #include "ui/fonts.h"
+#include "ui/i18n.h"
 
 namespace {
 
@@ -107,7 +108,7 @@ void drawConnectingText() {
                kConnectingTextMaxWidthPx, total_h + kPanelPadY * 2, config::kColorBlack);
 
   int y = block_top;
-  tft.drawString("Conectando a", kCenterX, y + detail_h / 2);
+  tft.drawString(ui::i18n::tr(ui::i18n::S::ConnectingTo), kCenterX, y + detail_h / 2);
   y += detail_h + kLineGap;
   tft.drawString(s_ssid_line, kCenterX, y + detail_h / 2);
 
@@ -174,12 +175,12 @@ void statusScreenConnectingTick() {
 
 void statusScreenPortal() {
   const TextLine lines[] = {
-      {"Configurar Wi-Fi", FontId::S22},
-      {"1. No celular, entre na rede:", FontId::S14},
+      {ui::i18n::tr(ui::i18n::S::WifiSetup), FontId::S22},
+      {ui::i18n::tr(ui::i18n::S::JoinNetwork), FontId::S14},
       {config::kPortalApName, FontId::S17},
-      {"2. Abra no navegador:", FontId::S14},
+      {ui::i18n::tr(ui::i18n::S::OpenBrowser), FontId::S14},
       {config::kPortalHostUrl, FontId::S17},
-      {"ou 192.168.4.1", FontId::S14},
+      {ui::i18n::tr(ui::i18n::S::OrIp), FontId::S14},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));
@@ -187,11 +188,11 @@ void statusScreenPortal() {
 
 void statusScreenConnectFailed() {
   const TextLine lines[] = {
-      {"Não conectou", FontId::S22},
-      {"Confira a senha", FontId::S17},
-      {"e o sinal do Wi-Fi.", FontId::S17},
-      {"Segure BOOT por 3 s", FontId::S14},
-      {"para configurar de novo", FontId::S14},
+      {ui::i18n::tr(ui::i18n::S::NotConnected), FontId::S22},
+      {ui::i18n::tr(ui::i18n::S::CheckPassword), FontId::S17},
+      {ui::i18n::tr(ui::i18n::S::AndSignal), FontId::S17},
+      {ui::i18n::tr(ui::i18n::S::HoldBoot), FontId::S14},
+      {ui::i18n::tr(ui::i18n::S::ToSetupAgain), FontId::S14},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));
@@ -199,8 +200,8 @@ void statusScreenConnectFailed() {
 
 void statusScreenWifiReset() {
   const TextLine lines[] = {
-      {"Wi-Fi apagado", FontId::S22},
-      {"Reiniciando…", FontId::S17},
+      {ui::i18n::tr(ui::i18n::S::WifiCleared), FontId::S22},
+      {ui::i18n::tr(ui::i18n::S::Restarting), FontId::S17},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));

@@ -19,12 +19,16 @@ LATIN1 = [c for c in range(33, 127)] + [c for c in range(161, 256)] + [0x2014, 0
 DIGITS = [ord(c) for c in "0123456789-+:.,%°C"]
 
 
-def build(ttf: str, size: int, codepoints: list[int]) -> bytes:
-    font = ImageFont.truetype(ttf, size)
+def build(ttf: str, size: int, codepoints: list[int], extra_ttf: str | None = None,
+          extra: list[int] | None = None) -> bytes:
+    main_font = ImageFont.truetype(ttf, size)
+    extra_font = ImageFont.truetype(extra_ttf, size) if extra_ttf else None
+    extra_set = set(extra or [])
     records = []
     bitmaps = []
-    for cp in sorted(set(codepoints)):
+    for cp in sorted(set(codepoints) | extra_set):
         ch = chr(cp)
+        font = extra_font if (cp in extra_set and extra_font is not None) else main_font
         adv = int(round(font.getlength(ch)))
         # Render on a roomy canvas with the baseline origin at (ox, oy), then
         # crop to the ink so records carry tight boxes (Pillow's getbbox is loose).
@@ -61,6 +65,8 @@ def main():
     ap.add_argument("size", type=int)
     ap.add_argument("out")
     ap.add_argument("--chars", default="latin1")
+    ap.add_argument("--extra-ttf", help="fallback font (e.g. Noto Sans SC) for --extra-from")
+    ap.add_argument("--extra-from", help="source file: every CJK character in it is added")
     a = ap.parse_args()
     if a.chars == "latin1":
         cps = LATIN1
@@ -68,7 +74,11 @@ def main():
         cps = DIGITS
     else:
         cps = [ord(c) for c in a.chars]
-    data = build(a.ttf, a.size, cps)
+    extra = None
+    if a.extra_from:
+        text = open(a.extra_from, encoding="utf-8").read()
+        extra = sorted({ord(c) for c in text if ord(c) >= 0x2E80})
+    data = build(a.ttf, a.size, cps, a.extra_ttf, extra)
     with open(a.out, "wb") as f:
         f.write(data)
     print(f"{a.out}: {len(data)} bytes, {struct.unpack('>i', data[:4])[0]} glyphs")

@@ -61,6 +61,9 @@ void nearestRadiusNext();
 
 bool useMiles();
 bool showRunways();
+/** Screen language index (ui::i18n::Lang); settable from the portal. */
+uint8_t language();
+void saveLanguageFromPortal(const char* value);
 /** Rotating sweep line on the radar (off by default); settable from the portal. */
 bool showSweep();
 void saveSweepFromPortal(const char* checkbox_value);

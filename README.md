@@ -11,8 +11,8 @@ Radar de aviões **ao vivo** com o **mapa da sua região**, **clima animado**, *
 com um **ESP32-C3**. Sem cadastro e sem chave de API: tudo vem de serviços gratuitos.
 
 > *English:* live ADS-B plane radar with a map of your area, animated weather, clock, nearest
-> aircraft and air quality on a round 240×240 GC9A01 screen driven by an ESP32-C3. UI in Brazilian
-> Portuguese. One-click browser installer below.
+> aircraft and air quality on a round 240×240 GC9A01 screen driven by an ESP32-C3. Screens in
+> Portuguese, English, Spanish or Chinese. One-click browser installer below.
 
 <p align="center">
   <a href="https://gustavofiladelfosoares-art.github.io/ESP-Plane-Radar/">
@@ -47,22 +47,67 @@ Capturas feitas direto da tela da placa (pela USB), com dados reais:
   <img src="docs/img/real/sobre.png" width="160" alt="Apresentação">
 </p>
 
-### O que aparece no radar
+## Funções
 
-- **Mapa** da sua região ao fundo (estradas, rios e áreas urbanas), montado pela própria placa
-  e guardado na memória — se você mudar a localização, ele é refeito sozinho.
-- **Zoom**: 5 → 10 → 15 → 25 → 50 → 100 km.
-- **Etiquetas** conforme o zoom, para não poluir a tela:
+### 🛩️ 1. Radar de aviões ao vivo
+Mostra os aviões que estão voando perto de você **em tempo real** (atualiza a cada 3 segundos).
+- **Mapa da sua região ao fundo** — ruas, rodovias, rios, represas e a mancha urbana, montado
+  pela própria placa a partir da sua localização e guardado na memória.
+- **6 níveis de zoom:** 5 → 10 → 15 → 25 → 50 → 100 km (dois toques no botão).
+- **Cada avião** aparece como um aviãozinho laranja apontando para onde está indo, com uma
+  linha mostrando a velocidade e a direção.
+- **Etiqueta inteligente**, que mostra mais ou menos informação conforme o zoom:
 
   | Zoom | Etiqueta |
   |------|----------|
-  | 100 km | voo + tipo (ex.: `TAM3302` / `A321`) |
-  | 50 km | + altitude |
-  | até 25 km | + rota (ex.: `CNF → VCP`) + velocidade |
+  | 100 km | voo + tipo do avião (ex.: `TAM3302` / `A321`) |
+  | 50 km | + altitude (pés) |
+  | até 25 km | + **rota** (ex.: `CNF → VCP`) + **velocidade** (km/h) |
 
-- **Bolinhas laranja na borda** = aviões fora do zoom atual, na direção certa — afaste o zoom e eles aparecem.
-- **Pistas dos grandes aeroportos** desenhadas no mapa.
-- **Varredura girando** (opcional, liga/desliga no celular).
+- **Bolinhas laranja na borda:** aviões que estão fora do zoom atual, na direção certa —
+  afaste o zoom e eles aparecem.
+- **Aeroportos:** a pista desenhada no mapa com o código do aeroporto (CNF, GRU, SDU…).
+- **Varredura girando** estilo radar de verdade, com “ping” quando passa por um avião (opcional).
+- As etiquetas **se desviam** umas das outras para não embolar.
+
+### ☀️ 2. Clima animado
+O tempo agora no lugar configurado, com **animação que muda conforme o tempo lá fora**:
+sol com raios girando, nuvem chegando, chuva caindo, tempestade com relâmpago, neblina,
+neve, e à noite lua com estrelas piscando e estrela cadente.
+Mostra **temperatura**, **sensação térmica**, **mínima e máxima do dia** e **chance de chuva**.
+
+### 🕐 3. Relógio
+Relógio de ponteiros com **hora certa pela internet** e **fuso horário automático**,
+ponteiro de segundos deslizando, **data**, hora digital e a temperatura atual.
+
+### ✈️ 4. Avião mais próximo
+Mostra **qual avião está mais perto de você** agora:
+- número do voo, **companhia aérea** e modelo do avião;
+- **rota** (de onde vem → para onde vai, com as cidades), quando disponível;
+- **para onde olhar no céu:** seta com a direção e a distância (ex.: “4,0 km a NE”);
+- **altitude** e **velocidade**;
+- **raio de busca** ajustável com dois toques: 5 → 10 → 20 → 50 km.
+
+### 🌫️ 5. Ar, UV e sol
+- **Qualidade do ar** (índice AQI) com cor e classificação (boa, moderada, ruim…).
+- **Índice UV** com classificação (baixo, moderado, alto, muito alto, extremo).
+- **Caminho do sol no dia:** um arco com o sol na posição atual, horário do **nascer** e do
+  **pôr do sol**, e quanto tempo falta para o pôr (ou para o nascer, à noite).
+
+### ⭐ 6. Apresentação
+Tela de abertura animada: **PLANE RADAR — made by Gustavo Soares**, com um avião orbitando.
+
+### 🌍 Idiomas
+**Português, English, Español e 中文** — escolha em *Localização e opções* pelo celular.
+Todas as telas mudam (textos, datas, pontos cardeais e formato dos números).
+
+<p align="center"><img src="docs/img/idiomas.png" width="760" alt="Telas em inglês, espanhol e chinês"></p>
+
+### ⚙️ Configuração pelo celular
+Sem instalar app: a placa cria uma página própria para configurar pelo navegador do celular —
+Wi-Fi, localização, idioma, milhas/km, pistas dos aeroportos, varredura e correção de cores.
+Tudo fica salvo na placa (pode desligar da tomada à vontade). Se o Wi-Fi cair ou o roteador
+demorar para voltar depois de uma queda de luz, a placa **reconecta sozinha**.
 
 ---
 
@@ -126,6 +171,7 @@ esptool --chip esp32c3 --port /dev/cu.usbmodem101 write-flash 0x0 esp-plane-rada
 Depois, com o celular no mesmo Wi-Fi, abra **`http://plane-radar.local`** → **Localização e opções** para mudar:
 
 - latitude / longitude
+- **idioma** (Português, English, Español, 中文)
 - distâncias em milhas
 - pistas dos aeroportos
 - **varredura girando no radar** (liga/desliga)
@@ -186,7 +232,7 @@ uma por vez, mostrando cores e um número grande. O número que aparecer indica 
 - **Clima, ar e UV:** [Open-Meteo](https://open-meteo.com/)
 - **Mapa:** Esri World Dark Gray Base — © Esri, HERE, Garmin, © OpenStreetMap contributors
 - **Bibliotecas:** [LovyanGFX](https://github.com/lovyan03/LovyanGFX), [WiFiManager](https://github.com/tzapu/WiFiManager), [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
-- **Fontes:** Noto Sans (SIL Open Font License — [`data/fonts/OFL.txt`](data/fonts/OFL.txt))
+- **Fontes:** Noto Sans e Noto Sans SC (SIL Open Font License — [`data/fonts/OFL.txt`](data/fonts/OFL.txt), [`data/fonts/OFL-NotoSansSC.txt`](data/fonts/OFL-NotoSansSC.txt))
 
 ## Licença
 

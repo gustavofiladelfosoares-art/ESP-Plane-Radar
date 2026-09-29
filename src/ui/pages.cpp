@@ -1,5 +1,7 @@
 #include "ui/pages.h"
 
+#include "ui/i18n.h"
+
 namespace ui {
 
 uint32_t drawPage(Page page, lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms) {
@@ -22,54 +24,28 @@ uint32_t drawPage(Page page, lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms) 
 }
 
 const char* weatherLabel(int code, bool is_day) {
+  using i18n::S;
+  S s = S::Weather;
   switch (code) {
-    case 0:
-      return is_day ? "Ensolarado" : "Céu limpo";
-    case 1:
-      return "Poucas nuvens";
-    case 2:
-      return "Parcialmente nublado";
-    case 3:
-      return "Nublado";
-    case 45:
-    case 48:
-      return "Neblina";
-    case 51:
-    case 53:
-    case 55:
-      return "Garoa";
-    case 56:
-    case 57:
-      return "Garoa gelada";
-    case 61:
-      return "Chuva fraca";
-    case 63:
-      return "Chuva";
-    case 65:
-      return "Chuva forte";
-    case 66:
-    case 67:
-      return "Chuva gelada";
-    case 71:
-    case 73:
-    case 75:
-    case 77:
-    case 85:
-    case 86:
-      return "Neve";
-    case 80:
-    case 81:
-      return "Pancadas de chuva";
-    case 82:
-      return "Pancadas fortes";
-    case 95:
-      return "Tempestade";
-    case 96:
-    case 99:
-      return "Tempestade c/ granizo";
-    default:
-      return "Tempo";
+    case 0: s = is_day ? S::Sunny : S::ClearNight; break;
+    case 1: s = S::FewClouds; break;
+    case 2: s = S::PartlyCloudy; break;
+    case 3: s = S::Cloudy; break;
+    case 45: case 48: s = S::Fog; break;
+    case 51: case 53: case 55: s = S::Drizzle; break;
+    case 56: case 57: s = S::FreezingDrizzle; break;
+    case 61: s = S::LightRain; break;
+    case 63: s = S::Rain; break;
+    case 65: s = S::HeavyRain; break;
+    case 66: case 67: s = S::FreezingRain; break;
+    case 71: case 73: case 75: case 77: case 85: case 86: s = S::Snow; break;
+    case 80: case 81: s = S::Showers; break;
+    case 82: s = S::HeavyShowers; break;
+    case 95: s = S::Storm; break;
+    case 96: case 99: s = S::StormHail; break;
+    default: break;
   }
+  return i18n::tr(s);
 }
 
 }  // namespace ui

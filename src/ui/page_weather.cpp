@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "ui/draw_util.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 
 namespace ui {
@@ -215,7 +216,7 @@ void drawNoData(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   draw::verticalGradient(g, sky.top, sky.bottom);
   const float bob = sinf(t * 0.004f) * 3.0f;
   draw::cloud(g, kCx, 90 + bob, 1.0f, Rgb{190, 200, 215}, Rgb{120, 132, 150});
-  draw::text(g, Id::S17, m.wifi_ok ? "Carregando clima…" : "Sem Wi-Fi", kCx, 150,
+  draw::text(g, Id::S17, i18n::tr(m.wifi_ok ? i18n::S::LoadingWeather : i18n::S::NoWifi), kCx, 150,
              rgb(230, 236, 245));
   draw::pageDots(g, static_cast<int>(Page::Weather), kPageCount);
 }
@@ -328,7 +329,7 @@ uint32_t drawWeatherPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   // ---- details ----
   fadeLine(g, sky, Id::S17, weatherLabel(w.code, w.is_day), 150, Rgb{255, 255, 255}, t, 450);
   char feels[24];
-  snprintf(feels, sizeof(feels), "Sensação %d°", static_cast<int>(lroundf(w.feels_c)));
+  snprintf(feels, sizeof(feels), i18n::tr(i18n::S::FeelsFmt), static_cast<int>(lroundf(w.feels_c)));
   fadeLine(g, sky, Id::S14, feels, 170, Rgb{220, 230, 245}, t, 600);
   drawStatsRow(g, sky, w, t);
 

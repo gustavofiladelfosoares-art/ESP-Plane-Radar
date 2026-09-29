@@ -22,6 +22,7 @@ APP_SRC := \
   $(ROOT)/src/ui/fonts.cpp \
   $(ROOT)/src/ui/draw_util.cpp \
   $(ROOT)/src/ui/pages.cpp \
+  $(ROOT)/src/ui/i18n.cpp \
   $(ROOT)/src/ui/page_weather.cpp \
   $(ROOT)/src/ui/page_clock.cpp \
   $(ROOT)/src/ui/page_nearest.cpp \

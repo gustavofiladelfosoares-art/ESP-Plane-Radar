@@ -15,6 +15,7 @@
 #include "services/radar_location.h"
 #include "ui/color.h"
 #include "ui/draw_util.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 #include "ui/radar_map.h"
 #include "ui/radar_range.h"
@@ -581,13 +582,13 @@ void drawCardinalLabels() {
   s_draw->setTextColor(radar::kColorLabel);
   // Portuguese compass: Norte, Sul, Leste, Oeste.
   s_draw->setTextDatum(textdatum_t::top_center);
-  s_draw->drawString("N", cx, radar::kCardinalNorthOffsetY);
+  s_draw->drawString(i18n::cardinal(0), cx, radar::kCardinalNorthOffsetY);
   s_draw->setTextDatum(textdatum_t::bottom_center);
-  s_draw->drawString("S", cx, edge + radar::kCardinalSouthOffsetY);
+  s_draw->drawString(i18n::cardinal(1), cx, edge + radar::kCardinalSouthOffsetY);
   s_draw->setTextDatum(textdatum_t::middle_left);
-  s_draw->drawString("O", 1, cy);
+  s_draw->drawString(i18n::cardinal(3), 1, cy);
   s_draw->setTextDatum(textdatum_t::middle_right);
-  s_draw->drawString("L", edge, cy);
+  s_draw->drawString(i18n::cardinal(2), edge, cy);
 }
 
 void drawScaleLabel() {

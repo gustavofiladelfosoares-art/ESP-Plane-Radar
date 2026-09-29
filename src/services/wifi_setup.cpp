@@ -95,6 +95,24 @@ char s_runways_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_runways("show_runways", "Mostrar pistas dos aeroportos", "T", 2,
                                      s_runways_checkbox_attrs, WFM_LABEL_AFTER);
 
+// Language picker: a <select> (custom HTML) that writes into a hidden field.
+char s_lang_html[560] = "";
+WiFiManagerParameter s_param_lang_ui(s_lang_html);
+WiFiManagerParameter s_param_lang("lang", "", "0", 2, "type=\"hidden\"");
+
+void buildLanguageHtml() {
+  static const char* kNames[] = {"Português", "English", "Español", "中文"};
+  const uint8_t cur = ui::radar::language();
+  int n = snprintf(s_lang_html, sizeof(s_lang_html),
+                   "<label for='langsel'>Idioma / Language / Idioma / 语言</label>"
+                   "<select id='langsel' onchange=\"document.getElementById('lang').value=this.value\">");
+  for (uint8_t i = 0; i < 4 && n < static_cast<int>(sizeof(s_lang_html)); ++i) {
+    n += snprintf(s_lang_html + n, sizeof(s_lang_html) - n, "<option value='%u'%s>%s</option>", i,
+                  i == cur ? " selected" : "", kNames[i]);
+  }
+  snprintf(s_lang_html + n, sizeof(s_lang_html) - n, "</select><br/>");
+}
+
 char s_sweep_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_sweep("show_sweep", "Mostrar varredura girando no radar", "T", 2,
                                    s_sweep_checkbox_attrs, WFM_LABEL_AFTER);
@@ -122,6 +140,10 @@ void refreshPortalParamDefaults() {
   snprintf(s_swap_checkbox_attrs, sizeof(s_swap_checkbox_attrs), "type=\"checkbox\"%s",
            ui::radar::swapColors() ? " checked" : "");
   s_param_swap.setValue("T", 2);
+  buildLanguageHtml();
+  char lang[3];
+  snprintf(lang, sizeof(lang), "%u", ui::radar::language());
+  s_param_lang.setValue(lang, 2);
 }
 
 void onPortalParamsSaved() {
@@ -131,6 +153,7 @@ void onPortalParamsSaved() {
   }
   ui::radar::saveMilesFromPortal(s_param_miles.getValue());
   ui::radar::saveRunwaysFromPortal(s_param_runways.getValue());
+  ui::radar::saveLanguageFromPortal(s_param_lang.getValue());
   ui::radar::saveSweepFromPortal(s_param_sweep.getValue());
   ui::radar::saveSwapColorsFromPortal(s_param_swap.getValue());
 }
@@ -141,6 +164,8 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_lon);
   wm.addParameter(&s_param_miles);
   wm.addParameter(&s_param_runways);
+  wm.addParameter(&s_param_lang_ui);
+  wm.addParameter(&s_param_lang);
   wm.addParameter(&s_param_sweep);
   wm.addParameter(&s_param_swap);
   wm.setSaveParamsCallback(onPortalParamsSaved);

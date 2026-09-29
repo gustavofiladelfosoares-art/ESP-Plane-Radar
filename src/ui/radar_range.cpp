@@ -5,6 +5,7 @@
 
 #include <Preferences.h>
 #include <cmath>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 
@@ -19,6 +20,7 @@ constexpr char kPrefsRunwaysKey[] = "showRwys";
 constexpr char kPrefsSwapKey[] = "swapRB";
 constexpr char kPrefsNearKey[] = "nearIdx";
 constexpr char kPrefsSweepKey[] = "sweep";
+constexpr char kPrefsLangKey[] = "lang";
 constexpr uint8_t kDefaultNearIndex = 3;  // 50 km
 constexpr uint8_t kDefaultRangeIndex = 1;  // 10 km ring
 constexpr float kKmPerMile = 1.609344f;
@@ -30,6 +32,7 @@ bool s_show_runways = true;
 bool s_swap_colors = config::kDisplayRgbOrder;
 uint8_t s_near_index = kDefaultNearIndex;
 bool s_show_sweep = false;
+uint8_t s_language = 0;  // Português
 
 void saveRangeIndex() {
   if (!s_prefs.begin(kPrefsNamespace, false)) {
@@ -88,6 +91,8 @@ void rangeInit() {
   s_show_runways = s_prefs.getBool(kPrefsRunwaysKey, true);
   s_swap_colors = s_prefs.getBool(kPrefsSwapKey, config::kDisplayRgbOrder);
   s_show_sweep = s_prefs.getBool(kPrefsSweepKey, false);
+  s_language = s_prefs.getUChar(kPrefsLangKey, 0);
+  if (s_language > 3) s_language = 0;
   const uint8_t near = s_prefs.getUChar(kPrefsNearKey, kDefaultNearIndex);
   s_near_index = near < kNearestRadiusCount ? near : kDefaultNearIndex;
   s_prefs.end();
@@ -122,6 +127,18 @@ bool showRunways() { return s_show_runways; }
 bool swapColors() { return s_swap_colors; }
 
 bool showSweep() { return s_show_sweep; }
+
+uint8_t language() { return s_language; }
+
+void saveLanguageFromPortal(const char* value) {
+  const int v = value != nullptr ? atoi(value) : 0;
+  s_language = static_cast<uint8_t>(v >= 0 && v <= 3 ? v : 0);
+  if (s_prefs.begin(kPrefsNamespace, false)) {
+    s_prefs.putUChar(kPrefsLangKey, s_language);
+    s_prefs.end();
+  }
+  Serial.printf("Language: %u\n", s_language);
+}
 
 void saveSweepFromPortal(const char* checkbox_value) {
   s_show_sweep = portalCheckboxChecked(checkbox_value);

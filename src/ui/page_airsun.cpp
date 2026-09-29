@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "ui/draw_util.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 
 namespace ui {
@@ -26,20 +27,24 @@ struct Category {
 };
 
 Category aqiCategory(int aqi) {
-  if (aqi <= 50) return {"Boa", {80, 210, 120}};
-  if (aqi <= 100) return {"Moderada", {240, 208, 60}};
-  if (aqi <= 150) return {"Ruim p/ sens.", {255, 150, 50}};
-  if (aqi <= 200) return {"Ruim", {240, 72, 60}};
-  if (aqi <= 300) return {"Muito ruim", {176, 96, 210}};
-  return {"Péssima", {160, 50, 80}};
+  using i18n::S;
+  using i18n::tr;
+  if (aqi <= 50) return {tr(S::AqiGood), {80, 210, 120}};
+  if (aqi <= 100) return {tr(S::AqiModerate), {240, 208, 60}};
+  if (aqi <= 150) return {tr(S::AqiSensitive), {255, 150, 50}};
+  if (aqi <= 200) return {tr(S::AqiUnhealthy), {240, 72, 60}};
+  if (aqi <= 300) return {tr(S::AqiVeryUnhealthy), {176, 96, 210}};
+  return {tr(S::AqiHazardous), {160, 50, 80}};
 }
 
 Category uvCategory(float uv) {
-  if (uv < 2.5f) return {"Baixo", {80, 210, 120}};
-  if (uv < 5.5f) return {"Moderado", {240, 208, 60}};
-  if (uv < 7.5f) return {"Alto", {255, 150, 50}};
-  if (uv < 10.5f) return {"Muito alto", {240, 72, 60}};
-  return {"Extremo", {176, 96, 210}};
+  using i18n::S;
+  using i18n::tr;
+  if (uv < 2.5f) return {tr(S::UvLow), {80, 210, 120}};
+  if (uv < 5.5f) return {tr(S::UvModerate), {240, 208, 60}};
+  if (uv < 7.5f) return {tr(S::UvHigh), {255, 150, 50}};
+  if (uv < 10.5f) return {tr(S::UvVeryHigh), {240, 72, 60}};
+  return {tr(S::UvExtreme), {176, 96, 210}};
 }
 
 /** 270° ring gauge with a rounded tip, value in the middle, caption below. */
@@ -107,7 +112,7 @@ void drawSunArc(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   }
 
   if (!sun.valid || !m.time.valid) {
-    draw::text(g, Id::S14, "Sol: aguardando…", kCx, 180, mix(bgAt(180), kMuted, pin));
+    draw::text(g, Id::S14, i18n::tr(i18n::S::SunWaiting), kCx, 180, mix(bgAt(180), kMuted, pin));
     return;
   }
 
@@ -139,13 +144,13 @@ void drawSunArc(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     draw::sun(g, sx, sy, 7, travel * 0.8f, t * 0.03f, bgAt(static_cast<int>(sy)));
     formatSpan(span, sizeof(span), sun.sunset_min - now);
     draw::text(g, Id::S22, span, kCx, 174, mix(bgAt(174), Rgb{255, 255, 255}, pin));
-    draw::text(g, Id::S14, "até o pôr do sol", kCx, 193, mix(bgAt(193), kMuted, pin));
+    draw::text(g, Id::S14, i18n::tr(i18n::S::UntilSunset), kCx, 193, mix(bgAt(193), kMuted, pin));
   } else {
     const int until = now < sun.sunrise_min ? sun.sunrise_min - now : sun.sunrise_min + 1440 - now;
     draw::moon(g, kCx, kCy - kR + 2, 9, lerp(bgAt(kCy - kR), Rgb{236, 232, 206}, pin));
     formatSpan(span, sizeof(span), until);
     draw::text(g, Id::S22, span, kCx, 174, mix(bgAt(174), Rgb{255, 255, 255}, pin));
-    draw::text(g, Id::S14, "até o sol nascer", kCx, 193, mix(bgAt(193), kMuted, pin));
+    draw::text(g, Id::S14, i18n::tr(i18n::S::UntilSunrise), kCx, 193, mix(bgAt(193), kMuted, pin));
   }
 }
 
@@ -161,7 +166,7 @@ uint32_t drawAirSunPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     char v[8];
     const Category ca = aqiCategory(m.air.aqi);
     snprintf(v, sizeof(v), "%d", static_cast<int>(lroundf(m.air.aqi * fill)));
-    gauge(g, 74, kGy, m.air.aqi / 200.0f, v, "AR", ca, fill, t);
+    gauge(g, 74, kGy, m.air.aqi / 200.0f, v, i18n::tr(i18n::S::AirCaption), ca, fill, t);
     const Category cu = uvCategory(m.air.uv);
     snprintf(v, sizeof(v), "%d", static_cast<int>(lroundf(m.air.uv * fill)));
     gauge(g, 166, kGy, m.air.uv / 12.0f, v, "UV", cu, fill, t);
@@ -170,7 +175,7 @@ uint32_t drawAirSunPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     draw::text(g, Id::S14, ca.label, 74, 124, mix(bgAt(124), ca.color, pc));
     draw::text(g, Id::S14, cu.label, 166, 124, mix(bgAt(124), cu.color, pc));
   } else {
-    draw::text(g, Id::S17, m.wifi_ok ? "Carregando ar e UV…" : "Sem Wi-Fi", kCx, 96,
+    draw::text(g, Id::S17, i18n::tr(m.wifi_ok ? i18n::S::LoadingAir : i18n::S::NoWifi), kCx, 96,
                rgb(220, 228, 240));
   }
 

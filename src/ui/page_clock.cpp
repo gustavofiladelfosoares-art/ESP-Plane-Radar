@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "ui/draw_util.h"
+#include "ui/i18n.h"
 #include "ui/pages.h"
 
 namespace ui {
@@ -15,9 +16,6 @@ using draw::kCy;
 using draw::kDegToRad;
 using fonts::Id;
 
-constexpr const char* kWeekdays[] = {"DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"};
-constexpr const char* kMonths[] = {"JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
-                                   "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"};
 
 const Rgb kBgCenter{24, 34, 60};
 const Rgb kBgEdge{4, 6, 14};
@@ -165,11 +163,10 @@ uint32_t drawClockPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     char date[24];
     char hm[8];
     if (tm.valid) {
-      snprintf(date, sizeof(date), "%s, %d %s", kWeekdays[tm.wday % 7], tm.day,
-               kMonths[(tm.month + 11) % 12]);
+      i18n::formatDate(date, sizeof(date), tm.wday, tm.day, tm.month);
       snprintf(hm, sizeof(hm), "%02d:%02d", tm.hour, tm.minute);
     } else {
-      snprintf(date, sizeof(date), "Acertando…");
+      snprintf(date, sizeof(date), "%s", i18n::tr(i18n::S::Syncing));
       snprintf(hm, sizeof(hm), "--:--");
     }
     draw::text(g, Id::S14, date, kCx, 160, mix(bgAt(kCx, 160), Rgb{120, 186, 255}, info));

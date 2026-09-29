@@ -14,7 +14,13 @@ com um **ESP32-C3**. Sem cadastro e sem chave de API: tudo vem de serviços grat
 > aircraft and air quality on a round 240×240 GC9A01 screen driven by an ESP32-C3. UI in Brazilian
 > Portuguese. One-click browser installer below.
 
-### 👉 [Instalar pelo navegador (1 clique)](https://gustavofiladelfosoares-art.github.io/ESP-Plane-Radar/)
+<p align="center">
+  <a href="https://gustavofiladelfosoares-art.github.io/ESP-Plane-Radar/">
+    <img src="https://img.shields.io/badge/%E2%9A%A1%20INSTALAR%20AGORA-direto%20pelo%20navegador-5aa8ff?style=for-the-badge" alt="Instalar agora pelo navegador" height="48">
+  </a>
+  <br>
+  <sub>Plugue a placa no computador (Chrome ou Edge), clique e pronto — sem programar nada.</sub>
+</p>
 
 ---
 

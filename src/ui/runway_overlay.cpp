@@ -200,6 +200,21 @@ bool projectRunway(const data::large_airports::Runway& rw, Segment* out) {
   int y1 = 0;
   latLonToScreen(e7ToDeg(rw.le_lat_e7), e7ToDeg(rw.le_lon_e7), &x0, &y0);
   latLonToScreen(e7ToDeg(rw.he_lat_e7), e7ToDeg(rw.he_lon_e7), &x1, &y1);
+  // On wide zooms a 3 km runway is 1-2 px: stretch it to a visible stub.
+  constexpr int kMinLenPx = 9;
+  const int dx = x1 - x0;
+  const int dy = y1 - y0;
+  const float len = sqrtf(static_cast<float>(dx * dx + dy * dy));
+  if (len < kMinLenPx) {
+    const float mx = (x0 + x1) * 0.5f;
+    const float my = (y0 + y1) * 0.5f;
+    const float ux = len > 0.5f ? dx / len : 1.0f;
+    const float uy = len > 0.5f ? dy / len : 0.0f;
+    x0 = static_cast<int>(lroundf(mx - ux * kMinLenPx / 2));
+    y0 = static_cast<int>(lroundf(my - uy * kMinLenPx / 2));
+    x1 = static_cast<int>(lroundf(mx + ux * kMinLenPx / 2));
+    y1 = static_cast<int>(lroundf(my + uy * kMinLenPx / 2));
+  }
   if (!segmentIntersectsDisc(x0, y0, x1, y1)) {
     return false;
   }
@@ -319,8 +334,9 @@ void drawLargeAirportRunways(lgfx::LGFXBase& gfx) {
   initRunwayLabelStyle(gfx);
   applyRunwayLabelStyle(gfx);
   for (size_t i = 0; i < s_label_count; ++i) {
-    drawBoldRunwayLabel(gfx, data::large_airports::kAirports[s_labels[i].airport].ident,
-                        s_labels[i].x, s_labels[i].y);
+    // The IATA code (CNF, GRU…) is what people know; ICAO when there is none.
+    const auto& ap = data::large_airports::kAirports[s_labels[i].airport];
+    drawBoldRunwayLabel(gfx, ap.iata[0] != '\0' ? ap.iata : ap.ident, s_labels[i].x, s_labels[i].y);
   }
 }
 

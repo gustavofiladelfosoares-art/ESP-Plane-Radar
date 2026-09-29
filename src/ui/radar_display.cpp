@@ -536,7 +536,7 @@ void drawAircraft(const Model& m, float sweep_deg) {
     draw::airplane(*s_draw, x, y, p.nose_deg, 17.0f, radar::kColorAircraft);
   }
   // Aircraft symbols are obstacles for every tag; tags claim space nearest-first.
-  static Box taken[services::adsb::kMaxAircraft * 2 + 7];
+  static Box taken[services::adsb::kMaxAircraft * 2 + 6];
   size_t taken_n = 0;
   // N / S / O / L letters and the range label on the east spoke.
   const int cx = radar::kCenterX;
@@ -547,7 +547,6 @@ void drawAircraft(const Model& m, float sweep_deg) {
   taken[taken_n++] = Box{radar::kSize - 16, cy - 10, radar::kSize, cy + 10};
   taken[taken_n++] = Box{cx + 58, cy - 10, cx + radar::kGridOuterRadius, cy + 10};
   taken[taken_n++] = Box{cx - 8, cy - 8, cx + 8, cy + 8};  // home marker
-  taken[taken_n++] = Box{48, 188, 76, 204};                 // GFS signature
   for (size_t d = 0; d < draw_count; ++d) {
     taken[taken_n++] = Box{items[d].x - 9, items[d].y - 9, items[d].x + 9, items[d].y + 9};
   }
@@ -605,18 +604,44 @@ void drawScaleLabel() {
   s_draw->drawString(label, x, y);
 }
 
-/** Author's initials, tiny and dim, tucked in the lower-left of the dial. */
+// Author's initials set into the bezel in place of three minor degree ticks,
+// each letter turned to follow the curve (lower-left, read left to right).
+constexpr int kSignatureDeg[] = {235, 230, 225};
+constexpr const char* kSignature[] = {"G", "F", "S"};
+
+bool isSignatureTick(int deg) {
+  for (int d : kSignatureDeg) {
+    if (d == deg) return true;
+  }
+  return false;
+}
+
 void drawSignature() {
-  displayFontEnsureLoaded(*s_draw);
-  displayFontSetSmoothSize(*s_draw, s_scale_vlw_size * 0.85f);
-  constexpr int kX = 62;
-  constexpr int kY = 196;
-  const int w = s_draw->textWidth("GFS");
-  const int h = s_draw->fontHeight();
-  s_draw->fillRoundRect(kX - w / 2 - 3, kY - h / 2 - 1, w + 6, h + 2, 3, radar::kColorBackground);
-  s_draw->setTextDatum(textdatum_t::middle_center);
-  s_draw->setTextColor(rgb(110, 160, 225));
-  s_draw->drawString("GFS", kX, kY);
+  static LGFX_Sprite glyph;
+  static bool ready = false;
+  if (!ready) {
+    glyph.setColorDepth(16);
+    ready = glyph.createSprite(14, 14) != nullptr;
+  }
+  if (!ready) return;
+  constexpr float kR = 113.5f;
+  // Clear the bezel strip behind the letters (the map reaches the edge).
+  draw::ring(*s_draw, radar::kCenterX, radar::kCenterY, 108, 120, 221.0f, 239.0f,
+             radar::kColorBackground);
+  for (int i = 0; i < 3; ++i) {
+    glyph.fillScreen(radar::kColorBackground);
+    displayFontEnsureLoaded(glyph);
+    displayFontSetSmoothSize(glyph, s_scale_vlw_size * 1.05f);
+    glyph.setTextDatum(textdatum_t::middle_center);
+    glyph.setTextColor(rgb(150, 195, 245), radar::kColorBackground);
+    glyph.drawString(kSignature[i], 7, 7);
+    const float a = kSignatureDeg[i] * kDegToRad;
+    const float x = radar::kCenterX + sinf(a) * kR;
+    const float y = radar::kCenterY - cosf(a) * kR;
+    // Tops of the letters face the centre.
+    glyph.pushRotateZoom(s_draw, x, y, kSignatureDeg[i] - 180.0f, 1.0f, 1.0f,
+                         radar::kColorBackground);
+  }
 }
 
 void drawSweep(float sweep_deg) {
@@ -651,7 +676,7 @@ void drawGrid() {
 
   // Bezel ticks every 5°, longer every 30°; leave room for N/S/L/O.
   for (int deg = 0; deg < 360; deg += 5) {
-    if (deg % 90 == 0) {
+    if (deg % 90 == 0 || isSignatureTick(deg)) {
       continue;
     }
     const bool major = deg % 30 == 0;

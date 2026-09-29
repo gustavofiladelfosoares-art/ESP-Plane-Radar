@@ -28,25 +28,34 @@ constexpr gpio_num_t kBootPin = GPIO_NUM_9;
 constexpr unsigned long kBootResetHoldMs = 3000UL;
 /** Ignore BOOT taps shorter than this (debounce). */
 constexpr unsigned long kBootTapMinMs = 40UL;
+/** Two taps closer than this (release to release) count as a double tap. */
+constexpr unsigned long kBootDoubleTapWindowMs = 450UL;
 
 // --- Display: GC9A01 1.28" round 240×240 (SPI) ---
 constexpr gpio_num_t kDisplayPinRst = GPIO_NUM_0;
 constexpr gpio_num_t kDisplayPinCs = GPIO_NUM_1;
-constexpr gpio_num_t kDisplayPinDc = GPIO_NUM_10;
+// DC is GPIO10 in the original ESP32-Plane-Radar wiring. Some ready-made
+// units wire it to GPIO2 instead — build env "supermini-dc2" for those.
+#ifndef PR_DISPLAY_PIN_DC
+#define PR_DISPLAY_PIN_DC 10
+#endif
+constexpr gpio_num_t kDisplayPinDc = static_cast<gpio_num_t>(PR_DISPLAY_PIN_DC);
 constexpr gpio_num_t kDisplayPinMosi = GPIO_NUM_3;  // display SDA
 constexpr gpio_num_t kDisplayPinSclk = GPIO_NUM_4;  // display SCL
 
 constexpr int kDisplayWidth = 240;
 constexpr int kDisplayHeight = 240;
 
-constexpr uint32_t kDisplaySpiWriteHz = 40000000;
-// GC9A01 modules often need invert + BGR for correct black/green output
+constexpr uint32_t kDisplaySpiWriteHz = 80000000;  // 80 MHz halves the frame push time
+// GC9A01 modules often need invert. rgb_order = true showed yellow as cyan on
+// this unit, so keep the panel in its native BGR order (colors come out right
+// on both direct draws and sprite pushes).
 constexpr bool kDisplayInvert = true;
-constexpr bool kDisplayRgbOrder = true;
+constexpr bool kDisplayRgbOrder = false;
 
 // --- Radar center defaults (overridden via WiFi setup portal) ---
-constexpr double kDefaultRadarLat = 52.3676;
-constexpr double kDefaultRadarLon = 4.9041;
+constexpr double kDefaultRadarLat = -19.919100;  // Belo Horizonte - MG (set yours in the portal)
+constexpr double kDefaultRadarLon = -43.938600;
 
 /** Poll adsb.fi (API public limit: 1 req/s). */
 constexpr unsigned long kAdsbFetchIntervalMs = 3000;
@@ -54,6 +63,11 @@ constexpr unsigned long kAdsbFetchIntervalMs = 3000;
 constexpr float kAdsbFetchRadiusScale = 1.0f;
 /** false = hide aircraft with alt_baro "ground"; true = show them too. */
 constexpr bool kAdsbShowGroundAircraft = false;
+
+// --- Weather / air quality (Open-Meteo, no API key) ---
+constexpr unsigned long kWeatherFetchIntervalMs = 10UL * 60UL * 1000UL;
+constexpr unsigned long kWeatherRetryIntervalMs = 60UL * 1000UL;
+constexpr unsigned long kAirFetchIntervalMs = 30UL * 60UL * 1000UL;
 
 // --- UI colors (RGB565) — status screens ---
 constexpr uint16_t kColorBlack = 0x0000;

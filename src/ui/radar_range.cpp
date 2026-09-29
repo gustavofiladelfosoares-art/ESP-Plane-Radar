@@ -1,5 +1,6 @@
 #include "ui/radar_range.h"
 
+#include "config.h"
 #include "ui/radar_theme.h"
 
 #include <Preferences.h>
@@ -15,6 +16,10 @@ constexpr char kPrefsNamespace[] = "planeradar";
 constexpr char kPrefsRangeKey[] = "rangeIdx";
 constexpr char kPrefsMilesKey[] = "useMiles";
 constexpr char kPrefsRunwaysKey[] = "showRwys";
+constexpr char kPrefsSwapKey[] = "swapRB";
+constexpr char kPrefsNearKey[] = "nearIdx";
+constexpr char kPrefsSweepKey[] = "sweep";
+constexpr uint8_t kDefaultNearIndex = 3;  // 50 km
 constexpr uint8_t kDefaultRangeIndex = 1;  // 10 km ring
 constexpr float kKmPerMile = 1.609344f;
 
@@ -22,6 +27,9 @@ Preferences s_prefs;
 uint8_t s_range_index = kDefaultRangeIndex;
 bool s_use_miles = false;
 bool s_show_runways = true;
+bool s_swap_colors = config::kDisplayRgbOrder;
+uint8_t s_near_index = kDefaultNearIndex;
+bool s_show_sweep = false;
 
 void saveRangeIndex() {
   if (!s_prefs.begin(kPrefsNamespace, false)) {
@@ -36,6 +44,14 @@ void saveUseMiles() {
     return;
   }
   s_prefs.putBool(kPrefsMilesKey, s_use_miles);
+  s_prefs.end();
+}
+
+void saveSwapColors() {
+  if (!s_prefs.begin(kPrefsNamespace, false)) {
+    return;
+  }
+  s_prefs.putBool(kPrefsSwapKey, s_swap_colors);
   s_prefs.end();
 }
 
@@ -70,6 +86,10 @@ void rangeInit() {
       (saved < kRangePresetCount) ? saved : kDefaultRangeIndex;
   s_use_miles = s_prefs.getBool(kPrefsMilesKey, false);
   s_show_runways = s_prefs.getBool(kPrefsRunwaysKey, true);
+  s_swap_colors = s_prefs.getBool(kPrefsSwapKey, config::kDisplayRgbOrder);
+  s_show_sweep = s_prefs.getBool(kPrefsSweepKey, false);
+  const uint8_t near = s_prefs.getUChar(kPrefsNearKey, kDefaultNearIndex);
+  s_near_index = near < kNearestRadiusCount ? near : kDefaultNearIndex;
   s_prefs.end();
 }
 
@@ -89,9 +109,44 @@ float fetchRadiusKm() {
   return outer_km * (screen_r_px / static_cast<float>(kGridOuterRadius));
 }
 
+float adsbRadiusKm() {
+  const size_t next = s_range_index + 1 < kRangePresetCount ? s_range_index + 1 : s_range_index;
+  const float screen_r_px = static_cast<float>(kCenterX - kBeyondRingScreenMarginPx);
+  return kRangePresets[next].outer_km * (screen_r_px / static_cast<float>(kGridOuterRadius));
+}
+
 bool useMiles() { return s_use_miles; }
 
 bool showRunways() { return s_show_runways; }
+
+bool swapColors() { return s_swap_colors; }
+
+bool showSweep() { return s_show_sweep; }
+
+void saveSweepFromPortal(const char* checkbox_value) {
+  s_show_sweep = portalCheckboxChecked(checkbox_value);
+  if (s_prefs.begin(kPrefsNamespace, false)) {
+    s_prefs.putBool(kPrefsSweepKey, s_show_sweep);
+    s_prefs.end();
+  }
+  Serial.printf("Radar sweep: %s\n", s_show_sweep ? "on" : "off");
+}
+
+float nearestRadiusKm() { return kNearestRadiiKm[s_near_index]; }
+
+void nearestRadiusNext() {
+  s_near_index = static_cast<uint8_t>((s_near_index + 1) % kNearestRadiusCount);
+  if (s_prefs.begin(kPrefsNamespace, false)) {
+    s_prefs.putUChar(kPrefsNearKey, s_near_index);
+    s_prefs.end();
+  }
+}
+
+void saveSwapColorsFromPortal(const char* checkbox_value) {
+  s_swap_colors = portalCheckboxChecked(checkbox_value);
+  saveSwapColors();
+  Serial.printf("Swap red/blue: %s\n", s_swap_colors ? "on" : "off");
+}
 
 void saveMilesFromPortal(const char* checkbox_value) {
   s_use_miles = portalCheckboxChecked(checkbox_value);

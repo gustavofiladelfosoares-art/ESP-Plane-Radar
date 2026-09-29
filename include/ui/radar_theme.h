@@ -31,7 +31,7 @@ constexpr float kGridStrokeHalfWidth = 1.0f;
 
 constexpr int kCenterDotRadius = 2;
 
-/** Filled aircraft symbol (nose triangle). */
+/** Aircraft symbol (silhouette ~15 px). */
 constexpr int kAircraftNoseLenPx = 8;
 constexpr int kAircraftTailLenPx = 3;
 constexpr int kAircraftTailHalfPx = 4;
@@ -62,32 +62,36 @@ constexpr int kBeyondRingScreenMarginPx = 2;
 /** Target cap height (px) for aircraft tags (bold, slightly above scale label). */
 constexpr int kAircraftTagLabelHeightPx = 13;
 
-/** RGB565 palette targets (applied in initPalette). */
+/** Logical RGB palette (converted through ui::rgb in initPalette). */
 constexpr uint8_t kBgR = 4;
-constexpr uint8_t kBgG = 10;
-constexpr uint8_t kBgB = 28;
-constexpr uint8_t kGridR = 16;
-constexpr uint8_t kGridG = 100;
-constexpr uint8_t kGridB = 32;
+constexpr uint8_t kBgG = 12;
+constexpr uint8_t kBgB = 34;
+constexpr uint8_t kGridR = 34;
+constexpr uint8_t kGridG = 88;
+constexpr uint8_t kGridB = 160;
 constexpr uint8_t kAircraftR = 255;
-constexpr uint8_t kAircraftG = 0;
-constexpr uint8_t kAircraftB = 0;
+constexpr uint8_t kAircraftG = 140;
+constexpr uint8_t kAircraftB = 30;
 constexpr uint8_t kTrackR = 255;
-constexpr uint8_t kTrackG = 0;
-constexpr uint8_t kTrackB = 255;
+constexpr uint8_t kTrackG = 96;
+constexpr uint8_t kTrackB = 60;
 constexpr uint8_t kTagTypeR = 255;
 constexpr uint8_t kTagTypeG = 200;
-constexpr uint8_t kTagTypeB = 0;
-constexpr uint8_t kTagAltR = 90;
+constexpr uint8_t kTagTypeB = 90;
+constexpr uint8_t kTagAltR = 120;
 constexpr uint8_t kTagAltG = 200;
 constexpr uint8_t kTagAltB = 255;
-constexpr uint8_t kRunwayR = 56;
+constexpr uint8_t kRunwayR = 80;
 constexpr uint8_t kRunwayG = 150;
-constexpr uint8_t kRunwayB = 170;
-/** Lighter teal for ICAO labels (vs runway lines). */
-constexpr uint8_t kRunwayLabelR = 110;
-constexpr uint8_t kRunwayLabelG = 210;
-constexpr uint8_t kRunwayLabelB = 230;
+constexpr uint8_t kRunwayB = 200;
+/** Lighter tone for ICAO labels (vs runway lines). */
+constexpr uint8_t kRunwayLabelR = 130;
+constexpr uint8_t kRunwayLabelG = 196;
+constexpr uint8_t kRunwayLabelB = 236;
+
+/** Sweep: one turn every kSweepPeriodMs, with a fading trail of kSweepTrailDeg. */
+constexpr float kSweepPeriodMs = 4000.0f;
+constexpr float kSweepTrailDeg = 60.0f;
 
 extern uint16_t kColorBackground;
 extern uint16_t kColorGrid;

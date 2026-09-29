@@ -1,0 +1,11 @@
+{
+  "name": "ESP Plane Radar",
+  "version": "2.0.0",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [{ "path": "firmware/esp-plane-radar-dc2.bin", "offset": 0 }]
+    }
+  ]
+}

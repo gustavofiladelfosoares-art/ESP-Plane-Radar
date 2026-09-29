@@ -29,10 +29,17 @@ constexpr RangePreset kRangePresets[] = {
     {10.0f, 10.0f * kRing3ToOuterKm},
     {15.0f, 15.0f * kRing3ToOuterKm},
     {25.0f, 25.0f * kRing3ToOuterKm},
+    // Wider views for areas where airports are farther away.
+    {50.0f, 50.0f * kRing3ToOuterKm},
+    {100.0f, 100.0f * kRing3ToOuterKm},
 };
 
 constexpr size_t kRangePresetCount =
     sizeof(kRangePresets) / sizeof(kRangePresets[0]);
+
+/** Search radius choices for the nearest-aircraft page (double tap cycles). */
+constexpr float kNearestRadiiKm[] = {5.0f, 10.0f, 20.0f, 50.0f};
+constexpr size_t kNearestRadiusCount = sizeof(kNearestRadiiKm) / sizeof(kNearestRadiiKm[0]);
 
 /** Load saved range and distance units from flash. Call once after boot. */
 void rangeInit();
@@ -40,11 +47,26 @@ void rangeInit();
 void rangeNext();
 const RangePreset& rangeCurrent();
 uint8_t rangeIndex();
-/** ADSB fetch radius (km): scaled to screen edge so beyond-ring dots have data. */
+/** Radius (km) of the visible screen edge for the current range. */
 float fetchRadiusKm();
+/**
+ * Radius (km) to request aircraft for the radar: the screen edge of the next
+ * wider range, so the rim dots show exactly what zooming out would reveal.
+ */
+float adsbRadiusKm();
+
+/** Nearest-aircraft search radius (km) and cycling it (saved to flash). */
+float nearestRadiusKm();
+void nearestRadiusNext();
 
 bool useMiles();
 bool showRunways();
+/** Rotating sweep line on the radar (off by default); settable from the portal. */
+bool showSweep();
+void saveSweepFromPortal(const char* checkbox_value);
+/** Swap red/blue in page colors (panel quirk); settable from the portal. */
+bool swapColors();
+void saveSwapColorsFromPortal(const char* checkbox_value);
 /** WiFi portal checkbox: "T" = miles, otherwise km. */
 void saveMilesFromPortal(const char* checkbox_value);
 void saveRunwaysFromPortal(const char* checkbox_value);

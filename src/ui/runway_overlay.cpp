@@ -10,6 +10,7 @@
 #include "services/radar_location.h"
 #include "ui/radar_range.h"
 #include "ui/radar_theme.h"
+#include "ui/shapes.h"
 
 namespace ui::runway {
 namespace {
@@ -178,28 +179,34 @@ void drawBoldRunwayLabel(lgfx::LGFXBase& gfx, const char* ident, int mx, int my)
   gfx.drawString(ident, mx, my);
 }
 
-bool drawRunwayLine(lgfx::LGFXBase& gfx, const data::large_airports::Runway& rw) {
-  const float le_lat = e7ToDeg(rw.le_lat_e7);
-  const float le_lon = e7ToDeg(rw.le_lon_e7);
-  const float he_lat = e7ToDeg(rw.he_lat_e7);
-  const float he_lon = e7ToDeg(rw.he_lon_e7);
+struct Segment {
+  int16_t x0;
+  int16_t y0;
+  int16_t x1;
+  int16_t y1;
+};
 
+struct LabelPos {
+  int16_t x;
+  int16_t y;
+  uint16_t airport;
+};
+
+/** Project one runway to screen space, clipped to the outer ring. */
+bool projectRunway(const data::large_airports::Runway& rw, Segment* out) {
   int x0 = 0;
   int y0 = 0;
   int x1 = 0;
   int y1 = 0;
-  latLonToScreen(le_lat, le_lon, &x0, &y0);
-  latLonToScreen(he_lat, he_lon, &x1, &y1);
-
+  latLonToScreen(e7ToDeg(rw.le_lat_e7), e7ToDeg(rw.le_lon_e7), &x0, &y0);
+  latLonToScreen(e7ToDeg(rw.he_lat_e7), e7ToDeg(rw.he_lon_e7), &x1, &y1);
   if (!segmentIntersectsDisc(x0, y0, x1, y1)) {
     return false;
   }
-
   clipPointToOuterRing(x0, y0, &x1, &y1);
   clipPointToOuterRing(x1, y1, &x0, &y0);
-
-  gfx.drawWideLine(x0, y0, x1, y1, radar::kRunwayLineHalfWidth,
-                   radar::kColorRunway);
+  *out = Segment{static_cast<int16_t>(x0), static_cast<int16_t>(y0), static_cast<int16_t>(x1),
+                 static_cast<int16_t>(y1)};
   return true;
 }
 
@@ -233,17 +240,60 @@ void clipPointOntoOuterRing(int* x, int* y) {
   *y = cy + static_cast<int>(lroundf(static_cast<float>(dy) * scale));
 }
 
-void drawAirportLabel(lgfx::LGFXBase& gfx,
-                      const data::large_airports::Airport& ap) {
-  int ax = 0;
-  int ay = 0;
-  latLonToScreen(e7ToDeg(ap.lat_e7), e7ToDeg(ap.lon_e7), &ax, &ay);
-  clipPointOntoOuterRing(&ax, &ay);
+// Screen-space runways for the current location + range. Projecting all
+// ~1700 runways takes >100 ms on the FPU-less ESP32-C3, so it is done only
+// when the view changes and every frame just draws the cached lines.
+constexpr size_t kMaxSegments = 96;
+Segment s_segments[kMaxSegments];
+size_t s_segment_count = 0;
+LabelPos s_labels[kMaxAirportLabels];
+size_t s_label_count = 0;
+double s_cache_lat = 1e9;
+double s_cache_lon = 1e9;
+uint8_t s_cache_range = 0xFF;
 
-  int lx = 0;
-  int ly = 0;
-  offsetLabelFromCenter(ax, ay, &lx, &ly);
-  drawBoldRunwayLabel(gfx, ap.ident, lx, ly);
+void rebuildCache() {
+  s_cache_lat = services::location::lat();
+  s_cache_lon = services::location::lon();
+  s_cache_range = radar::rangeIndex();
+  s_segment_count = 0;
+  s_label_count = 0;
+  const float radius_km = radar::fetchRadiusKm();
+
+  for (size_t i = 0; i < data::large_airports::kAirportCount; ++i) {
+    s_in_range[i] = false;
+    s_label_pending[i] = false;
+  }
+  // Airports first (one distance check each), then only their runways.
+  for (size_t i = 0; i < data::large_airports::kAirportCount; ++i) {
+    const auto& ap = data::large_airports::kAirports[i];
+    float dx_km = 0.0f;
+    float dy_km = 0.0f;
+    float dist_km = 0.0f;
+    offsetKmFromCenter(e7ToDeg(ap.lat_e7), e7ToDeg(ap.lon_e7), &dx_km, &dy_km, &dist_km);
+    s_in_range[i] = dist_km <= radius_km;
+  }
+  for (size_t i = 0; i < data::large_airports::kRunwayCount && s_segment_count < kMaxSegments; ++i) {
+    const auto& rw = data::large_airports::kRunways[i];
+    const uint16_t ap_idx = rw.airport_idx;
+    if (!s_in_range[ap_idx] || !projectRunway(rw, &s_segments[s_segment_count])) {
+      continue;
+    }
+    ++s_segment_count;
+    if (!s_label_pending[ap_idx] && s_label_count < kMaxAirportLabels) {
+      s_label_pending[ap_idx] = true;
+      const auto& ap = data::large_airports::kAirports[ap_idx];
+      int ax = 0;
+      int ay = 0;
+      latLonToScreen(e7ToDeg(ap.lat_e7), e7ToDeg(ap.lon_e7), &ax, &ay);
+      clipPointOntoOuterRing(&ax, &ay);
+      int lx = 0;
+      int ly = 0;
+      offsetLabelFromCenter(ax, ay, &lx, &ly);
+      s_labels[s_label_count++] =
+          LabelPos{static_cast<int16_t>(lx), static_cast<int16_t>(ly), ap_idx};
+    }
+  }
 }
 
 }  // namespace
@@ -252,49 +302,25 @@ void drawLargeAirportRunways(lgfx::LGFXBase& gfx) {
   if (!radar::showRunways()) {
     return;
   }
-  displayFontEnsureLoaded(gfx);
-  const float radius_km = radar::fetchRadiusKm();
-
-  uint16_t label_airports[kMaxAirportLabels];
-  size_t label_count = 0;
-
-  for (size_t i = 0; i < data::large_airports::kAirportCount; ++i) {
-    s_in_range[i] = false;
-    s_label_pending[i] = false;
+  if (s_cache_range != radar::rangeIndex() || s_cache_lat != services::location::lat() ||
+      s_cache_lon != services::location::lon()) {
+    rebuildCache();
   }
-
-  for (size_t i = 0; i < data::large_airports::kRunwayCount; ++i) {
-    const auto& rw = data::large_airports::kRunways[i];
-    const uint16_t ap_idx = rw.airport_idx;
-    if (!s_in_range[ap_idx]) {
-      const auto& ap = data::large_airports::kAirports[ap_idx];
-      float dx_km = 0.0f;
-      float dy_km = 0.0f;
-      float dist_km = 0.0f;
-      offsetKmFromCenter(e7ToDeg(ap.lat_e7), e7ToDeg(ap.lon_e7), &dx_km, &dy_km,
-                         &dist_km);
-      s_in_range[ap_idx] = (dist_km <= radius_km);
-    }
-    if (!s_in_range[ap_idx]) {
-      continue;
-    }
-    if (!drawRunwayLine(gfx, rw)) {
-      continue;
-    }
-    if (!s_label_pending[ap_idx] && label_count < kMaxAirportLabels) {
-      s_label_pending[ap_idx] = true;
-      label_airports[label_count++] = ap_idx;
-    }
+  auto& g = static_cast<lgfx::LovyanGFX&>(gfx);
+  for (size_t i = 0; i < s_segment_count; ++i) {
+    const Segment& sg = s_segments[i];
+    draw::thickLine(g, sg.x0, sg.y0, sg.x1, sg.y1, radar::kRunwayLineHalfWidth,
+                    radar::kRunwayLineHalfWidth, radar::kColorRunway);
   }
-
-  if (label_count == 0) {
+  if (s_label_count == 0) {
     return;
   }
-
+  displayFontEnsureLoaded(gfx);
   initRunwayLabelStyle(gfx);
   applyRunwayLabelStyle(gfx);
-  for (size_t i = 0; i < label_count; ++i) {
-    drawAirportLabel(gfx, data::large_airports::kAirports[label_airports[i]]);
+  for (size_t i = 0; i < s_label_count; ++i) {
+    drawBoldRunwayLabel(gfx, data::large_airports::kAirports[s_labels[i].airport].ident,
+                        s_labels[i].x, s_labels[i].y);
   }
 }
 

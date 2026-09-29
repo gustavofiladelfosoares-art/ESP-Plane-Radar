@@ -10,6 +10,7 @@
 #include "config.h"
 #include "hardware/display.h"
 #include "hardware/display_font.h"
+#include "ui/fonts.h"
 
 namespace {
 
@@ -36,50 +37,25 @@ float s_spinner_angle_deg = -90.0f;
 SpinnerDot s_spinner_dots[kSpinnerDotCount];
 bool s_connecting_text_drawn = false;
 
-constexpr auto& kGfxTitle = fonts::FreeSans18pt7b;
-constexpr auto& kGfxBody = fonts::FreeSans12pt7b;
-constexpr auto& kGfxDetail = fonts::Font2;
-constexpr auto& kPortalGfxTitle = fonts::FreeSansBold18pt7b;
-constexpr auto& kPortalGfxBody = fonts::FreeSansBold12pt7b;
-constexpr auto& kPortalGfxEmphasis = fonts::FreeSansBold18pt7b;
-constexpr auto& kConnectingGfxDetail = fonts::FreeSans9pt7b;
+using FontId = ui::fonts::Id;
 
 struct TextLine {
   const char* text;
-  float vlw_size;
-  const lgfx::GFXfont* gfx_font;
+  FontId font;
 };
 
-int lineHeightGfx(const lgfx::GFXfont* font) {
-  displayFontSetBitmap(tft, font);
+int lineHeight(FontId font) {
+  ui::fonts::use(tft, font);
   return tft.fontHeight();
-}
-
-int lineHeightVlw(float size) {
-  displayFontSetSmoothSize(tft, size);
-  return tft.fontHeight();
-}
-
-void applyLineStyle(const TextLine& line) {
-  if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, line.vlw_size);
-  } else {
-    displayFontSetBitmap(tft, line.gfx_font);
-  }
 }
 
 void drawTextBlock(uint16_t bg, uint16_t fg, const TextLine* lines, size_t count) {
   tft.fillScreen(bg);
-  tft.setTextColor(fg, bg);
   tft.setTextDatum(textdatum_t::middle_center);
 
   int total_h = 0;
   for (size_t i = 0; i < count; ++i) {
-    if (displayFontIsSmooth()) {
-      total_h += lineHeightVlw(lines[i].vlw_size);
-    } else {
-      total_h += lineHeightGfx(lines[i].gfx_font);
-    }
+    total_h += lineHeight(lines[i].font);
     if (i + 1 < count) {
       total_h += kLineGap;
     }
@@ -87,24 +63,14 @@ void drawTextBlock(uint16_t bg, uint16_t fg, const TextLine* lines, size_t count
 
   int y = (config::kDisplayHeight - total_h) / 2;
   for (size_t i = 0; i < count; ++i) {
-    applyLineStyle(lines[i]);
-    const int h =
-        displayFontIsSmooth() ? lineHeightVlw(lines[i].vlw_size)
-                              : lineHeightGfx(lines[i].gfx_font);
+    const int h = lineHeight(lines[i].font);
+    tft.setTextColor(fg, bg);
     tft.drawString(lines[i].text, kCenterX, y + h / 2);
     y += h + kLineGap;
   }
 }
 
-constexpr float kConnectingDetailVlw = 0.92f;
-
-void applyConnectingDetailStyle() {
-  if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, kConnectingDetailVlw);
-  } else {
-    displayFontSetBitmap(tft, &kConnectingGfxDetail);
-  }
-}
+void applyConnectingDetailStyle() { ui::fonts::use(tft, FontId::S17); }
 
 /** SSID on one line; truncate with … if wider than kConnectingTextMaxWidthPx. */
 void fitSsidLine() {
@@ -141,7 +107,7 @@ void drawConnectingText() {
                kConnectingTextMaxWidthPx, total_h + kPanelPadY * 2, config::kColorBlack);
 
   int y = block_top;
-  tft.drawString("Connecting to", kCenterX, y + detail_h / 2);
+  tft.drawString("Conectando a", kCenterX, y + detail_h / 2);
   y += detail_h + kLineGap;
   tft.drawString(s_ssid_line, kCenterX, y + detail_h / 2);
 
@@ -208,12 +174,12 @@ void statusScreenConnectingTick() {
 
 void statusScreenPortal() {
   const TextLine lines[] = {
-      {"Wi-Fi setup", 1.15f, &kPortalGfxTitle},
-      {"1. Join network:", 1.05f, &kPortalGfxBody},
-      {config::kPortalApName, 1.12f, &kPortalGfxEmphasis},
-      {"2. Open in browser:", 1.05f, &kPortalGfxBody},
-      {config::kPortalHostUrl, 1.12f, &kPortalGfxEmphasis},
-      {"or 192.168.4.1", 1.0f, &kPortalGfxBody},
+      {"Configurar Wi-Fi", FontId::S22},
+      {"1. No celular, entre na rede:", FontId::S14},
+      {config::kPortalApName, FontId::S17},
+      {"2. Abra no navegador:", FontId::S14},
+      {config::kPortalHostUrl, FontId::S17},
+      {"ou 192.168.4.1", FontId::S14},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));
@@ -221,11 +187,11 @@ void statusScreenPortal() {
 
 void statusScreenConnectFailed() {
   const TextLine lines[] = {
-      {"Could not connect", 1.15f, &kGfxTitle},
-      {"Check Wi-Fi password", 1.0f, &kGfxBody},
-      {"and signal strength.", 1.0f, &kGfxBody},
-      {"Hold BOOT 3 sec", 1.0f, &kGfxBody},
-      {"to reset Wi-Fi", 1.0f, &kGfxBody},
+      {"Não conectou", FontId::S22},
+      {"Confira a senha", FontId::S17},
+      {"e o sinal do Wi-Fi.", FontId::S17},
+      {"Segure BOOT por 3 s", FontId::S14},
+      {"para configurar de novo", FontId::S14},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));
@@ -233,8 +199,8 @@ void statusScreenConnectFailed() {
 
 void statusScreenWifiReset() {
   const TextLine lines[] = {
-      {"Wi-Fi reset", 1.15f, &kPortalGfxTitle},
-      {"Restarting...", 1.05f, &kPortalGfxBody},
+      {"Wi-Fi apagado", FontId::S22},
+      {"Reiniciando…", FontId::S17},
   };
   drawTextBlock(config::kColorYellow, config::kTextOnYellow, lines,
                 sizeof(lines) / sizeof(lines[0]));

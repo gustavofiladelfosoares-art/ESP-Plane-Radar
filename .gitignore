@@ -4,3 +4,9 @@ release/
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.venv/
+sim/build/
+sim/out/
+sim/cache/
+backup/
+.DS_Store

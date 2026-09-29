@@ -37,19 +37,18 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
+      # Two variants that only differ in the display DC pin (GPIO10 / GPIO2).
       - name: Build
-        run: pio run -e supermini
-
-      - name: Merge web-flash image
-        run: pio run -t merge -e supermini
+        run: |
+          pio run -e supermini -e supermini-dc2
+          pio run -t merge -e supermini
+          pio run -t merge -e supermini-dc2
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: plane-radar-supermini
+          name: esp-plane-radar
           if-no-files-found: error
           path: |
             .pio/build/supermini/firmware-merged.bin
-            .pio/build/supermini/firmware.bin
-            .pio/build/supermini/bootloader.bin
-            .pio/build/supermini/partitions.bin
+            .pio/build/supermini-dc2/firmware-merged.bin

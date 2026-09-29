@@ -20,7 +20,11 @@
 #include "ui/status_screens.h"
 
 portMUX_TYPE s_boot_mux = portMUX_INITIALIZER_UNLOCKED;
-volatile bool s_boot_tap_pending = false;
+// Taps in the current (unresolved) burst, and single taps already resolved
+// while the main loop was busy.
+volatile uint8_t s_boot_taps = 0;
+volatile uint8_t s_boot_single_backlog = 0;
+volatile unsigned long s_boot_last_tap_ms = 0;
 volatile bool s_boot_is_down = false;
 volatile unsigned long s_boot_down_ms = 0;
 bool s_long_press_handled = false;
@@ -36,7 +40,13 @@ void IRAM_ATTR onBootButtonIsr() {
   } else if (s_boot_is_down) {
     const unsigned long held = now - s_boot_down_ms;
     if (held >= config::kBootTapMinMs && held < config::kBootResetHoldMs) {
-      s_boot_tap_pending = true;
+      if (s_boot_taps == 1 && now - s_boot_last_tap_ms > config::kBootDoubleTapWindowMs) {
+        // Previous tap stood alone; keep it as a single tap.
+        if (s_boot_single_backlog < 4) ++s_boot_single_backlog;
+        s_boot_taps = 0;
+      }
+      if (s_boot_taps < 2) ++s_boot_taps;
+      s_boot_last_tap_ms = now;
     }
     s_boot_is_down = false;
   }
@@ -72,18 +82,26 @@ constexpr int kCoordParamLen = 20;
 constexpr char kCoordInputAttrs[] =
     " type=\"number\" step=\"0.000001\"";
 
-WiFiManagerParameter s_param_lat("radar_lat", "Latitude (deg)", "0",
+WiFiManagerParameter s_param_lat("radar_lat", "Latitude (graus, ex.: -19.919100)", "0",
                                 kCoordParamLen, kCoordInputAttrs);
-WiFiManagerParameter s_param_lon("radar_lon", "Longitude (deg)", "0",
+WiFiManagerParameter s_param_lon("radar_lon", "Longitude (graus, ex.: -43.938600)", "0",
                                 kCoordParamLen, kCoordInputAttrs);
 
 char s_miles_checkbox_attrs[32] = "type=\"checkbox\"";
-WiFiManagerParameter s_param_miles("use_miles", "Display distances in miles", "T", 2,
+WiFiManagerParameter s_param_miles("use_miles", "Mostrar distâncias em milhas", "T", 2,
                                    s_miles_checkbox_attrs, WFM_LABEL_AFTER);
 
 char s_runways_checkbox_attrs[32] = "type=\"checkbox\"";
-WiFiManagerParameter s_param_runways("show_runways", "Show airport runways", "T", 2,
+WiFiManagerParameter s_param_runways("show_runways", "Mostrar pistas dos aeroportos", "T", 2,
                                      s_runways_checkbox_attrs, WFM_LABEL_AFTER);
+
+char s_sweep_checkbox_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_sweep("show_sweep", "Mostrar varredura girando no radar", "T", 2,
+                                   s_sweep_checkbox_attrs, WFM_LABEL_AFTER);
+
+char s_swap_checkbox_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_swap("swap_rb", "Corrigir cores (trocar vermelho e azul)", "T", 2,
+                                  s_swap_checkbox_attrs, WFM_LABEL_AFTER);
 
 void refreshPortalParamDefaults() {
   char lat_buf[kCoordParamLen + 1];
@@ -98,6 +116,12 @@ void refreshPortalParamDefaults() {
   snprintf(s_runways_checkbox_attrs, sizeof(s_runways_checkbox_attrs),
            "type=\"checkbox\"%s", ui::radar::showRunways() ? " checked" : "");
   s_param_runways.setValue("T", 2);
+  snprintf(s_sweep_checkbox_attrs, sizeof(s_sweep_checkbox_attrs), "type=\"checkbox\"%s",
+           ui::radar::showSweep() ? " checked" : "");
+  s_param_sweep.setValue("T", 2);
+  snprintf(s_swap_checkbox_attrs, sizeof(s_swap_checkbox_attrs), "type=\"checkbox\"%s",
+           ui::radar::swapColors() ? " checked" : "");
+  s_param_swap.setValue("T", 2);
 }
 
 void onPortalParamsSaved() {
@@ -107,6 +131,8 @@ void onPortalParamsSaved() {
   }
   ui::radar::saveMilesFromPortal(s_param_miles.getValue());
   ui::radar::saveRunwaysFromPortal(s_param_runways.getValue());
+  ui::radar::saveSweepFromPortal(s_param_sweep.getValue());
+  ui::radar::saveSwapColorsFromPortal(s_param_swap.getValue());
 }
 
 void attachPortalParams(WiFiManager& wm) {
@@ -115,6 +141,8 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_lon);
   wm.addParameter(&s_param_miles);
   wm.addParameter(&s_param_runways);
+  wm.addParameter(&s_param_sweep);
+  wm.addParameter(&s_param_swap);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }
 
@@ -388,14 +416,23 @@ bool wifiBootButtonPressed() {
 
 void bootButtonInit() { initBootButton(); }
 
-bool bootButtonConsumeTap() {
+BootGesture bootButtonConsumeGesture() {
+  BootGesture g = BootGesture::None;
+  const unsigned long now = millis();
   portENTER_CRITICAL(&s_boot_mux);
-  const bool tap = s_boot_tap_pending;
-  if (tap) {
-    s_boot_tap_pending = false;
+  if (s_boot_single_backlog > 0) {
+    --s_boot_single_backlog;
+    g = BootGesture::Tap;
+  } else if (s_boot_taps >= 2) {
+    s_boot_taps = 0;
+    g = BootGesture::DoubleTap;
+  } else if (s_boot_taps == 1 && !s_boot_is_down &&
+             now - s_boot_last_tap_ms > config::kBootDoubleTapWindowMs) {
+    s_boot_taps = 0;
+    g = BootGesture::Tap;
   }
   portEXIT_CRITICAL(&s_boot_mux);
-  return tap;
+  return g;
 }
 
 void bootButtonPollLongPress() {

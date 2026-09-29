@@ -12,7 +12,11 @@ void wifiLoop();
 bool wifiBootButtonPressed();
 /** GPIO + interrupt setup; call once early in setup(). */
 void bootButtonInit();
-/** Latched short tap (survives blocking HTTP/display work). */
-bool bootButtonConsumeTap();
+enum class BootGesture { None, Tap, DoubleTap };
+/**
+ * Latched BOOT gesture (survives blocking work). A single tap is reported
+ * once the double-tap window has passed without a second tap.
+ */
+BootGesture bootButtonConsumeGesture();
 /** Call each loop iteration; triggers WiFi reset on long hold. */
 void bootButtonPollLongPress();

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP Plane Radar — instalar</title>
+  <meta name="description" content="Radar de aviões, clima, relógio e mais numa tela redonda com ESP32-C3. Instale direto pelo navegador. By Gustavo Soares.">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js"
+          integrity="sha384-9XfyvAabgkISlB/Xb3OpshGKpZx0TOt5Mmu78SeiNU3so/p4o2s9m66vy6Utdnom"
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #070b18; --panel: #0f1730; --line: #1f2d52; --fg: #eaf0ff;
+      --muted: #9aa8c7; --accent: #5aa8ff; --gold: #ffcc6e; --orange: #ff8c1e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg);
+      font: 16px/1.55 -apple-system, "Segoe UI", Roboto, system-ui, sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+    header { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+    header img { width: 220px; max-width: 60vw; border-radius: 50%; box-shadow: 0 0 0 6px #161616, 0 20px 60px #000a; }
+    h1 { font-size: 34px; margin: 0; letter-spacing: .5px; }
+    h1 span { color: var(--accent); }
+    .by { color: var(--gold); font-weight: 600; margin: 4px 0 12px; }
+    p.lead { color: var(--muted); max-width: 560px; margin: 0; }
+    h2 { font-size: 20px; margin: 40px 0 12px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+    .card h3 { margin: 0 0 6px; font-size: 17px; }
+    .card p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+    .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px;
+      background: #1c2a4d; color: var(--accent); margin-bottom: 8px; }
+    button.install { background: var(--accent); color: #041022; border: 0; border-radius: 10px;
+      padding: 10px 16px; font-weight: 700; font-size: 15px; cursor: pointer; }
+    button.install:hover { filter: brightness(1.1); }
+    ol { padding-left: 20px; } ol li { margin: 6px 0; }
+    .muted { color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .grid figure { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+    .grid img { width: 100%; border-radius: 50%; }
+    code { background: #16213f; padding: 1px 6px; border-radius: 6px; }
+    a { color: var(--accent); }
+    .warn { border-left: 3px solid var(--orange); padding: 8px 12px; background: #1a1420; border-radius: 6px; }
+    footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="img/radar.webp" alt="Radar de aviões animado na tela redonda">
+    <div>
+      <h1>ESP <span>Plane Radar</span></h1>
+      <div class="by">by Gustavo Soares</div>
+      <p class="lead">Radar de aviões ao vivo com mapa da sua região, clima animado, relógio,
+        avião mais próximo e qualidade do ar — numa telinha redonda com ESP32-C3.
+        Instale direto pelo navegador, sem programar nada.</p>
+    </div>
+  </header>
+
+  <h2>1. Escolha a versão e instale</h2>
+  <p class="muted">Use o <b>Chrome</b> ou o <b>Edge</b> no computador e conecte a placa com um cabo USB-C <b>de dados</b>.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="pill">mais comum</span>
+      <h3>Montagem original</h3>
+      <p>Fio <b>DC da tela no GPIO10</b> (igual ao projeto ESP32-Plane-Radar original).</p>
+      <esp-web-install-button manifest="./manifest-dc10.json">
+        <button class="install" slot="activate">Instalar (DC no GPIO10)</button>
+        <span slot="unsupported">Navegador sem suporte: use Chrome ou Edge no computador.</span>
+        <span slot="not-allowed">Abra esta página por HTTPS.</span>
+      </esp-web-install-button>
+    </div>
+    <div class="card">
+      <span class="pill">se a tela ficar preta</span>
+      <h3>Variação DC no GPIO2</h3>
+      <p>Algumas unidades prontas ligam o <b>DC no GPIO2</b>. Se com a outra versão a tela ficar
+        preta (com brilho fraco), instale esta.</p>
+      <esp-web-install-button manifest="./manifest-dc2.json">
+        <button class="install" slot="activate">Instalar (DC no GPIO2)</button>
+        <span slot="unsupported">Navegador sem suporte: use Chrome ou Edge no computador.</span>
+        <span slot="not-allowed">Abra esta página por HTTPS.</span>
+      </esp-web-install-button>
+    </div>
+  </div>
+  <p class="warn">Se a placa não aparecer na lista: segure <b>BOOT</b>, aperte e solte <b>RESET</b>,
+    solte <b>BOOT</b> e tente de novo. Se continuar sem aparecer, troque o cabo (muitos só carregam).</p>
+
+  <h2>2. Configure pelo celular</h2>
+  <ol>
+    <li>A tela mostra <b>“Configurar Wi-Fi”</b>. No celular, entre na rede <code>PlaneRadar-Setup</code>.</li>
+    <li>Abra <code>http://192.168.4.1</code> (costuma abrir sozinho) → <b>Configurar Wi-Fi</b>.</li>
+    <li>Escolha a sua rede, digite a senha e preencha a <b>latitude/longitude</b> do lugar
+      (no Google Maps, segure o dedo no mapa e copie os números). Salve.</li>
+    <li>Depois, para mudar algo, abra <code>http://plane-radar.local</code> com o celular no mesmo Wi-Fi.</li>
+  </ol>
+
+  <h2>3. Use o botão BOOT</h2>
+  <ul>
+    <li><b>Toque</b>: próxima tela.</li>
+    <li><b>Dois toques</b>: no radar muda o zoom (5 → 10 → 15 → 25 → 50 → 100 km);
+      na tela “avião mais próximo” muda o raio de busca (5 → 10 → 20 → 50 km).</li>
+    <li><b>Segurar 3 s</b>: apaga o Wi-Fi e volta para a configuração.</li>
+  </ul>
+
+  <h2>As telas</h2>
+  <div class="grid">
+    <figure><img src="img/radar.webp" alt=""><figcaption>Radar + mapa</figcaption></figure>
+    <figure><img src="img/clima_sol.webp" alt=""><figcaption>Clima (sol)</figcaption></figure>
+    <figure><img src="img/clima_chuva.webp" alt=""><figcaption>Clima (chuva)</figcaption></figure>
+    <figure><img src="img/clima_tempestade.webp" alt=""><figcaption>Clima (tempestade)</figcaption></figure>
+    <figure><img src="img/clima_noite.webp" alt=""><figcaption>Clima (noite)</figcaption></figure>
+    <figure><img src="img/relogio.webp" alt=""><figcaption>Relógio</figcaption></figure>
+    <figure><img src="img/aviao.webp" alt=""><figcaption>Avião mais próximo</figcaption></figure>
+    <figure><img src="img/ar_sol.webp" alt=""><figcaption>Ar, UV e sol</figcaption></figure>
+    <figure><img src="img/sobre.webp" alt=""><figcaption>Apresentação</figcaption></figure>
+  </div>
+
+  <footer>
+    Código, peças e instruções completas:
+    <a href="https://github.com/gustavofiladelfosoares-art/ESP-Plane-Radar">github.com/gustavofiladelfosoares-art/ESP-Plane-Radar</a><br>
+    Baseado no <a href="https://github.com/MatixYo/ESP32-Plane-Radar">ESP32-Plane-Radar</a> de MatixYo (MIT).
+    Dados: adsb.fi, adsbdb, Open-Meteo. Mapa: © Esri, HERE, Garmin, © OpenStreetMap contributors.
+  </footer>
+</main>
+</body>
+</html>

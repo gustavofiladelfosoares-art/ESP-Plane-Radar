@@ -536,7 +536,7 @@ void drawAircraft(const Model& m, float sweep_deg) {
     draw::airplane(*s_draw, x, y, p.nose_deg, 17.0f, radar::kColorAircraft);
   }
   // Aircraft symbols are obstacles for every tag; tags claim space nearest-first.
-  static Box taken[services::adsb::kMaxAircraft * 2 + 6];
+  static Box taken[services::adsb::kMaxAircraft * 2 + 7];
   size_t taken_n = 0;
   // N / S / O / L letters and the range label on the east spoke.
   const int cx = radar::kCenterX;
@@ -547,6 +547,7 @@ void drawAircraft(const Model& m, float sweep_deg) {
   taken[taken_n++] = Box{radar::kSize - 16, cy - 10, radar::kSize, cy + 10};
   taken[taken_n++] = Box{cx + 58, cy - 10, cx + radar::kGridOuterRadius, cy + 10};
   taken[taken_n++] = Box{cx - 8, cy - 8, cx + 8, cy + 8};  // home marker
+  taken[taken_n++] = Box{48, 188, 76, 204};                 // GFS signature
   for (size_t d = 0; d < draw_count; ++d) {
     taken[taken_n++] = Box{items[d].x - 9, items[d].y - 9, items[d].x + 9, items[d].y + 9};
   }
@@ -602,6 +603,20 @@ void drawScaleLabel() {
   s_draw->fillRoundRect(x - tw - 4, y - th / 2 - 2, tw + 7, th + 4, 3, radar::kColorBackground);
   s_draw->setTextColor(rgb(110, 170, 240));
   s_draw->drawString(label, x, y);
+}
+
+/** Author's initials, tiny and dim, tucked in the lower-left of the dial. */
+void drawSignature() {
+  displayFontEnsureLoaded(*s_draw);
+  displayFontSetSmoothSize(*s_draw, s_scale_vlw_size * 0.85f);
+  constexpr int kX = 62;
+  constexpr int kY = 196;
+  const int w = s_draw->textWidth("GFS");
+  const int h = s_draw->fontHeight();
+  s_draw->fillRoundRect(kX - w / 2 - 3, kY - h / 2 - 1, w + 6, h + 2, 3, radar::kColorBackground);
+  s_draw->setTextDatum(textdatum_t::middle_center);
+  s_draw->setTextColor(rgb(110, 160, 225));
+  s_draw->drawString("GFS", kX, kY);
 }
 
 void drawSweep(float sweep_deg) {
@@ -706,6 +721,7 @@ uint32_t drawRadarPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   mark(5);
   drawCardinalLabels();
   drawScaleLabel();
+  drawSignature();
   mark(6);
   g.setTextDatum(textdatum_t::top_left);
   s_draw = &tft;

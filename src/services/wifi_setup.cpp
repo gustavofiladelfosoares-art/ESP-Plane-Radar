@@ -377,12 +377,14 @@ bool connectSavedNetwork(bool show_ui) {
   return tryConnectWithUi(ssid, pass, show_ui);
 }
 
-bool openConfigPortal() {
+/** timeout_sec = 0 keeps the portal open until someone configures Wi-Fi. */
+bool openConfigPortal(unsigned long timeout_sec = config::kWifiPortalTimeoutSec) {
   stopLanWebPortal();
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
   delay(50);
   statusScreenPortal();
+  s_wm.setConfigPortalTimeout(timeout_sec);
   s_wm.setConfigPortalBlocking(false);
   s_wm.startConfigPortal(config::kPortalApName);
   while (s_wm.getConfigPortalActive()) {
@@ -530,10 +532,21 @@ bool wifiSetupConnect() {
   }
 
   if (storedWifiCredentials()) {
-    Serial.println("Saved WiFi could not connect — opening setup portal");
-  } else {
-    Serial.println("No saved WiFi — opening setup portal");
+    // A saved network that is just not up yet (router still booting after a
+    // power cut): offer the portal for a while, then go back to the saved
+    // network, and keep alternating until one of them works.
+    Serial.println("Saved WiFi could not connect — portal for a while, then retry");
+    for (;;) {
+      if (openConfigPortal(config::kWifiSavedRetryPortalSec) && wifiLinkUp()) break;
+      Serial.println("Portal timed out — retrying saved WiFi");
+      if (connectSavedNetwork(true)) break;
+    }
+    WiFi.setAutoReconnect(true);
+    Serial.printf("Connected: %s  IP %s\n", WiFi.SSID().c_str(),
+                  WiFi.localIP().toString().c_str());
+    return true;
   }
+  Serial.println("No saved WiFi — opening setup portal");
 
   if (openConfigPortal() && wifiLinkUp()) {
     WiFi.setAutoReconnect(true);

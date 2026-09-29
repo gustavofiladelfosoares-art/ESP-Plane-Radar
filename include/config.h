@@ -17,6 +17,8 @@ constexpr char kPortalHostUrl[] = "plane-radar.local";
 constexpr unsigned long kWifiConnectAttemptMs = 15000;
 constexpr uint8_t kWifiConnectAttempts = 3;
 constexpr unsigned long kWifiPortalTimeoutSec = 0;  // 0 = no timeout while configuring
+/** With Wi-Fi already saved, the portal closes after this and the saved network is retried. */
+constexpr unsigned long kWifiSavedRetryPortalSec = 180;
 constexpr unsigned long kWifiConnectingFrameMs = 50;
 /** Wait after disconnect before reconnecting (avoids portal on brief drops). */
 constexpr unsigned long kWifiDownGraceMs = 4000;

@@ -29,6 +29,18 @@ Mais animações: [sol](docs/img/clima_sol.webp) · [nuvens](docs/img/clima_nuve
 [tempestade](docs/img/clima_tempestade.webp) · [noite](docs/img/clima_noite.webp) ·
 [trocando o raio](docs/img/aviao_raio.webp)
 
+### Na placa de verdade
+
+Capturas feitas direto da tela da placa (pela USB), com dados reais:
+
+<p align="center">
+  <img src="docs/img/real/clima.png" width="160" alt="Clima">
+  <img src="docs/img/real/relogio.png" width="160" alt="Relógio">
+  <img src="docs/img/real/aviao.png" width="160" alt="Avião mais próximo">
+  <img src="docs/img/real/ar_sol.png" width="160" alt="Ar, UV e sol">
+  <img src="docs/img/real/sobre.png" width="160" alt="Apresentação">
+</p>
+
 ### O que aparece no radar
 
 - **Mapa** da sua região ao fundo (estradas, rios e áreas urbanas), montado pela própria placa

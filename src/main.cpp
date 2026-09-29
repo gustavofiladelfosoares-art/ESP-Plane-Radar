@@ -258,7 +258,7 @@ void setup() {
   Serial.begin(115200);
   delay(300);
   Serial.println();
-  Serial.println("Plane Radar");
+  Serial.println("ESP Plane Radar v2.1.0 — by Gustavo Soares");
 
   services::sharedInit();
   bootButtonInit();

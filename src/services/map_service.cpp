@@ -89,51 +89,54 @@ bool writeSlot(uint8_t range, double lat, double lon, const uint8_t* map) {
   return ok;
 }
 
-/** Download the tiles for one range, classify them and store the result. */
+/**
+ * Download the tiles for one range one at a time (centre tile first, which
+ * also calibrates the classes), paint them into a map and store it.
+ */
 bool build(double lat, double lon, uint8_t range) {
   const float outer_km = ui::radar::kRangePresets[range].outer_km;
   const rm::TilePlan p = rm::plan(lat, lon, outer_km);
   const int nx = p.tx1 - p.tx0 + 1;
   const int ny = p.ty1 - p.ty0 + 1;
-  if (nx * ny > 9) {
+  if (nx * ny > 16) {
     return false;
   }
-  // 1) Fetch every tile first so the TLS session is gone before we decode.
-  uint8_t* jpg[9] = {};
-  size_t len[9] = {};
-  bool ok = true;
-  int i = 0;
-  for (int ty = p.ty0; ty <= p.ty1 && ok; ++ty) {
-    for (int tx = p.tx0; tx <= p.tx1 && ok; ++tx, ++i) {
-      char url[200];
-      snprintf(url, sizeof(url), rm::kTileUrlFormat, p.z, ty, tx);
-      ok = http::getBytes(url, "map", &jpg[i], &len[i], 48 * 1024);
-    }
+  int cx = 0;
+  int cy = 0;
+  rm::centerTile(p, &cx, &cy);
+
+  auto* map = static_cast<uint8_t*>(malloc(rm::kBytes));
+  if (map == nullptr) {
+    return false;
   }
-  // 2) Calibrate on all tiles, 3) paint, 4) clean up and store.
-  uint8_t* map = ok ? static_cast<uint8_t*>(malloc(rm::kBytes)) : nullptr;
-  if (map != nullptr) {
-    rm::Histogram hist;
-    for (int k = 0; k < nx * ny && ok; ++k) {
-      ok = rm::accumulate(jpg[k], len[k], &hist);
-    }
-    memset(map, 0, rm::kBytes);
-    const rm::Thresholds th = rm::calibrate(hist);
-    i = 0;
-    for (int ty = p.ty0; ty <= p.ty1 && ok; ++ty) {
-      for (int tx = p.tx0; tx <= p.tx1 && ok; ++tx, ++i) {
-        ok = rm::paintTile(p, tx, ty, jpg[i], len[i], th, map);
-      }
+  memset(map, 0, rm::kBytes);
+  rm::Thresholds th;
+  bool ok = true;
+  for (int k = -1; k < nx * ny && ok; ++k) {
+    // k = -1 is the centre tile; then every other tile in the grid.
+    const int tx = k < 0 ? cx : p.tx0 + k % nx;
+    const int ty = k < 0 ? cy : p.ty0 + k / nx;
+    if (k >= 0 && tx == cx && ty == cy) continue;
+    char url[200];
+    snprintf(url, sizeof(url), rm::kTileUrlFormat, p.z, ty, tx);
+    uint8_t* jpg = nullptr;
+    size_t len = 0;
+    ok = http::getBytes(url, "map", &jpg, &len, 48 * 1024);
+    if (ok && k < 0) {
+      rm::Histogram hist;
+      ok = rm::accumulate(jpg, len, &hist);
+      th = rm::calibrate(hist);
     }
     if (ok) {
-      rm::despeckle(map);
-      ok = writeSlot(range, lat, lon, map);
+      ok = rm::paintTile(p, tx, ty, jpg, len, th, map);
     }
-    free(map);
-  } else {
-    ok = false;
+    free(jpg);
   }
-  for (uint8_t* b : jpg) free(b);
+  if (ok) {
+    rm::despeckle(map);
+    ok = writeSlot(range, lat, lon, map);
+  }
+  free(map);
   Serial.printf("map: range %u zoom %d, %d tiles %s\n", range, p.z, nx * ny, ok ? "ok" : "FAILED");
   return ok;
 }

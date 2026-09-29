@@ -17,7 +17,7 @@ constexpr int kSize = 240;
 constexpr size_t kBytes = kSize * kSize / 4;
 
 /** Bump when classification or layout changes so cached maps rebuild. */
-constexpr uint8_t kFormatVersion = 2;
+constexpr uint8_t kFormatVersion = 3;
 
 /** Tile URL; printf with (z, y, x). */
 constexpr char kTileUrlFormat[] =
@@ -28,7 +28,7 @@ struct TilePlan {
   int z = 0;
   double gx_c = 0.0;  // radar center in global tile pixels at zoom z
   double gy_c = 0.0;
-  double scale = 1.0;  // screen pixels per tile pixel (>= 1)
+  double scale = 1.0;  // screen pixels per tile pixel (normally 0.5..1)
   int tx0 = 0;
   int ty0 = 0;
   int tx1 = 0;
@@ -37,6 +37,12 @@ struct TilePlan {
 
 /** Pick zoom and tiles so the map matches the radar scale for outer_km. */
 TilePlan plan(double lat, double lon, float outer_km);
+
+/** Tile under the radar centre (use it first: it calibrates the classes). */
+inline void centerTile(const TilePlan& p, int* tx, int* ty) {
+  *tx = static_cast<int>(p.gx_c) / 256;
+  *ty = static_cast<int>(p.gy_c) / 256;
+}
 
 /** Luminance histogram over every tile, used to calibrate the classes. */
 struct Histogram {

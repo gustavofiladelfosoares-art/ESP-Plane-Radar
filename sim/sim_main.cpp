@@ -91,20 +91,19 @@ std::vector<uint8_t> tile(int z, int x, int y) {
 void buildMap(uint8_t* map, double lat, double lon, float outer_km) {
   memset(map, 0, ui::radar_map::kBytes);
   const auto p = ui::radar_map::plan(lat, lon, outer_km);
-  std::vector<std::vector<uint8_t>> jpgs;
+  // Same as the firmware: the centre tile calibrates the classes.
+  int cx = 0;
+  int cy = 0;
+  ui::radar_map::centerTile(p, &cx, &cy);
   ui::radar_map::Histogram hist;
-  for (int ty = p.ty0; ty <= p.ty1; ++ty) {
-    for (int tx = p.tx0; tx <= p.tx1; ++tx) {
-      jpgs.push_back(tile(p.z, tx, ty));
-      ui::radar_map::accumulate(jpgs.back().data(), jpgs.back().size(), &hist);
-    }
-  }
+  const auto center = tile(p.z, cx, cy);
+  ui::radar_map::accumulate(center.data(), center.size(), &hist);
   const auto th = ui::radar_map::calibrate(hist);
   int tiles = 0;
-  size_t i = 0;
   for (int ty = p.ty0; ty <= p.ty1; ++ty) {
-    for (int tx = p.tx0; tx <= p.tx1; ++tx, ++i) {
-      if (ui::radar_map::paintTile(p, tx, ty, jpgs[i].data(), jpgs[i].size(), th, map)) ++tiles;
+    for (int tx = p.tx0; tx <= p.tx1; ++tx) {
+      const auto jpg = tile(p.z, tx, ty);
+      if (!jpg.empty() && ui::radar_map::paintTile(p, tx, ty, jpg.data(), jpg.size(), th, map)) ++tiles;
     }
   }
   ui::radar_map::despeckle(map);
@@ -181,6 +180,19 @@ int main(int argc, char** argv) {
   }
 
   static uint8_t map[ui::radar_map::kBytes];
+  // Map preview for every range (sim/out/maps_all.rgb, one 240x240 per range).
+  {
+    FILE* mf = fopen((out + "/maps_all.rgb").c_str(), "wb");
+    std::vector<lgfx::bgr888_t> px(240 * 240);
+    for (size_t r = 0; r < ui::radar::kRangePresetCount; ++r) {
+      buildMap(map, lat, lon, ui::radar::kRangePresets[r].outer_km);
+      frame.fillScreen(0);
+      ui::radar_map::draw(frame, map, static_cast<uint16_t*>(frame.getBuffer()));
+      frame.readRect(0, 0, 240, 240, px.data());
+      fwrite(px.data(), 3, px.size(), mf);
+    }
+    fclose(mf);
+  }
   buildMap(map, lat, lon, ui::radar::rangeCurrent().outer_km);
 
   std::vector<Aircraft> planes = {

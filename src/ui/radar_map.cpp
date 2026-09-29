@@ -36,6 +36,10 @@ int luminance(const uint8_t* px) {
   return (px[0] + 2 * px[1] + px[2]) >> 2;
 }
 
+// When several tile pixels land on one screen pixel, keep the most telling
+// class: road beats water beats built-up beats nothing.
+constexpr uint8_t kPriority[4] = {0, 2, 1, 3};
+
 void setLevel(uint8_t* map, int x, int y, uint8_t v) {
   const size_t i = static_cast<size_t>(y) * kSize + x;
   const int shift = (i & 3) * 2;
@@ -73,6 +77,25 @@ uint32_t writeBlock(void* dev, void* bitmap, JRECT* r) {
   auto* d = static_cast<Decode*>(dev);
   const uint8_t* px = static_cast<const uint8_t*>(bitmap);
   const int w = r->right - r->left + 1;
+  if (d->plan->scale < 1.0) {
+    // Downsampling (the usual case): each tile pixel lands on the screen pixel
+    // under its centre and merges by priority, so 1 px roads survive.
+    const double s = d->plan->scale;
+    for (uint32_t y = r->top; y <= r->bottom; ++y) {
+      const int sy = static_cast<int>(std::floor((d->oy + y + 0.5 - d->plan->gy_c) * s + kSize / 2.0));
+      if (sy < 0 || sy >= kSize) {
+        px += w * 3;
+        continue;
+      }
+      for (uint32_t x = r->left; x <= r->right; ++x, px += 3) {
+        const int sx = static_cast<int>(std::floor((d->ox + x + 0.5 - d->plan->gx_c) * s + kSize / 2.0));
+        if (sx < 0 || sx >= kSize) continue;
+        const uint8_t v = classify(luminance(px), *d->th);
+        if (kPriority[v] > kPriority[level(d->map, sx, sy)]) setLevel(d->map, sx, sy, v);
+      }
+    }
+    return 1;
+  }
   for (uint32_t y = r->top; y <= r->bottom; ++y) {
     int sy0 = 0;
     int sy1 = 0;
@@ -128,7 +151,11 @@ TilePlan plan(double lat, double lon, float outer_km) {
   const double px_per_km = radar::kGridOuterRadius / static_cast<double>(outer_km);
   // Screen px per degree of longitude vs tile px per degree at zoom z.
   const double screen_px_per_deg = kKmPerDeg * std::cos(lat_rad) * px_per_km;
-  int z = static_cast<int>(std::floor(std::log2(screen_px_per_deg * 360.0 / kTilePx)));
+  // Fetch 1–2 zoom levels more detail than the screen needs (scale 0.375..0.75):
+  // thin roads only show up in higher-zoom tiles; writeBlock merges them down.
+  const double fit = screen_px_per_deg * 360.0 / kTilePx;
+  int z = static_cast<int>(std::floor(std::log2(fit)));
+  z += fit / std::pow(2.0, z) < 1.5 ? 1 : 2;
   if (z < 3) z = 3;
   if (z > 16) z = 16;
   const double world = kTilePx * std::pow(2.0, z);

@@ -337,10 +337,32 @@ void drawRoute(const RouteCodes& r, int x, int y, int line_h, uint16_t color) {
   s_draw->drawString(r.to, ax + kRouteArrowW - 2, y);
 }
 
+uint32_t s_now_ms = 0;  // page time, for pulsing emergency aircraft
+const Rgb kEmergency{255, 64, 64};
+const Rgb kMilitary{140, 214, 100};
+
+bool isEmergency(const Aircraft& p) { return p.flags & services::adsb::kFlagEmergency; }
+bool isMilitary(const Aircraft& p) { return p.flags & services::adsb::kFlagMilitary; }
+
+/** Second tag line: the aircraft type, or the squawk code in an emergency. */
+const char* tagTypeText(const Aircraft& p, char* buf, size_t len) {
+  if (isEmergency(p)) {
+    if (p.squawk) {
+      snprintf(buf, len, "SQ %u", p.squawk);
+    } else {
+      snprintf(buf, len, "SOS");
+    }
+    return buf;
+  }
+  return p.type;
+}
+
 int measureTagBlockWidth(const Aircraft& plane, const TagDetail& detail) {
   applyTagStyle();
   int max_w = 0;
-  for (const char* s : {plane.callsign, plane.type, detail.altitude ? plane.alt : ""}) {
+  char type[12];
+  for (const char* s : {plane.callsign, tagTypeText(plane, type, sizeof(type)),
+                        detail.altitude ? plane.alt : ""}) {
     if (s[0] != '\0') {
       max_w = std::max(max_w, static_cast<int>(s_draw->textWidth(s)));
     }
@@ -446,14 +468,20 @@ void drawAircraftTag(int x, int y, const Aircraft& plane, Box* taken, size_t* ta
   // Transparent text so the map and sweep show through between glyphs.
   s_draw->setTextDatum(textdatum_t::top_left);
   int ly = best.y0;
+  const bool emergency = isEmergency(plane);
+  const bool military = isMilitary(plane);
   if (plane.callsign[0] != '\0') {
-    s_draw->setTextColor(radar::kColorLabel);
+    s_draw->setTextColor(emergency ? rgb(kEmergency) : radar::kColorLabel);
     s_draw->drawString(plane.callsign, best.x0, ly);
   }
   ly += line_h;
-  if (plane.type[0] != '\0') {
-    s_draw->setTextColor(radar::kColorTagType);
-    s_draw->drawString(plane.type, best.x0, ly);
+  char type[12];
+  const char* type_text = tagTypeText(plane, type, sizeof(type));
+  if (type_text[0] != '\0') {
+    s_draw->setTextColor(emergency  ? rgb(kEmergency)
+                         : military ? rgb(kMilitary)
+                                    : radar::kColorTagType);
+    s_draw->drawString(type_text, best.x0, ly);
   }
   ly += line_h;
   if (route != nullptr) {
@@ -533,8 +561,19 @@ void drawAircraft(const Model& m, float sweep_deg) {
       const float k = since / 900.0f;
       s_draw->drawCircle(x, y, 6 + static_cast<int>(k * 12.0f), mix(kBg, orange, (1.0f - k) * 0.9f));
     }
+    uint16_t color = radar::kColorAircraft;
+    if (isEmergency(p)) {
+      // Two expanding red rings, so it stands out at any zoom.
+      for (int k = 0; k < 2; ++k) {
+        const float ph = fmodf(s_now_ms / 1100.0f + k * 0.5f, 1.0f);
+        s_draw->drawCircle(x, y, 8 + static_cast<int>(ph * 14.0f), mix(kBg, kEmergency, 1.0f - ph));
+      }
+      color = rgb(kEmergency);
+    } else if (isMilitary(p)) {
+      color = rgb(kMilitary);
+    }
     drawSpeedVector(x, y, p.nose_deg, p.track_deg, p.gs_knots);
-    draw::airplane(*s_draw, x, y, p.nose_deg, 17.0f, radar::kColorAircraft);
+    draw::airplane(*s_draw, x, y, p.nose_deg, 17.0f, color);
   }
   // Aircraft symbols are obstacles for every tag; tags claim space nearest-first.
   static Box taken[services::adsb::kMaxAircraft * 2 + 6];
@@ -714,6 +753,7 @@ void radarProfile(uint32_t out_us[kRadarStages]) {
 uint32_t drawRadarPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   s_draw = &g;
   s_model = &m;
+  s_now_ms = t;
   initPalette();
   initLabelMetrics();
 
@@ -751,8 +791,11 @@ uint32_t drawRadarPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   mark(6);
   g.setTextDatum(textdatum_t::top_left);
   s_draw = &tft;
-  // Without the sweep only the home marker pulses, so fewer frames suffice.
-  return sweep_on ? 40 : 100;
+  // Without the sweep only the home marker pulses, so fewer frames suffice
+  // (unless an aircraft in emergency is pulsing).
+  bool emergency = false;
+  for (size_t i = 0; i < m.plane_count; ++i) emergency |= isEmergency(m.planes[i]);
+  return sweep_on || emergency ? 40 : 100;
 }
 
 }  // namespace ui

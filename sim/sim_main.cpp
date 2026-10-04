@@ -18,6 +18,7 @@
 #include "hardware/display.h"
 #include "hardware/display_font.h"
 #include "services/radar_location.h"
+#include "ui/draw_util.h"
 #include "ui/fonts.h"
 #include "ui/i18n.h"
 #include "ui/pages.h"
@@ -138,7 +139,10 @@ struct Scenario {
   uint32_t duration_ms;
   bool tick_clock;
   bool radius_toast = false;  // pretend the search radius was just changed
+  bool alert = false;         // overhead alert fires at t = 0
+  int month_change_ms = -1;   // calendar: show the next month from this time
   ui::i18n::Lang lang = ui::i18n::Lang::PT;
+  uint16_t dim = 256;  // night-mode brightness applied after drawing (256 = off)
 };
 
 void setTime(ui::TimeModel* t, int h, int m, int s, int ms) {
@@ -226,6 +230,36 @@ int main(int argc, char** argv) {
   base.sun = {true, 5 * 60 + 48, 18 * 60 + 4};
   base.air = {true, 42, 7.2f};
   base.weather = {true, 28.3f, 31.3f, 50, 3.7f, 0, true, 18.5f, 32.8f, 10};
+  {
+    ui::SummaryModel& r = base.summary;
+    r.seen = 147;
+    snprintf(r.highest_cs, sizeof(r.highest_cs), "TAM8084");
+    r.highest_ft = 41000;
+    snprintf(r.fastest_cs, sizeof(r.fastest_cs), "UAL861");
+    r.fastest_kmh = 934;
+    snprintf(r.closest_cs, sizeof(r.closest_cs), "AZU4521");
+    r.closest_km = 1.2f;
+    snprintf(r.airline, sizeof(r.airline), "Azul");
+    r.airline_count = 38;
+  }
+  base.hourly.valid = true;
+  {
+    const float temps[] = {24, 26, 27.5f, 28.3f, 28, 27, 25, 23, 21.5f, 20, 19, 18.5f};
+    const int rain[] = {0, 0, 5, 10, 30, 60, 80, 40, 20, 10, 0, 0};
+    for (int i = 0; i < 12; ++i) {
+      base.hourly.hour[i] = (10 + i) % 24;
+      base.hourly.temp_c[i] = temps[i];
+      base.hourly.rain_prob[i] = rain[i];
+    }
+    base.hourly.count = 12;
+  }
+  base.forecast.valid = true;
+  {
+    const ui::ForecastDay days[] = {{3, 1, 17.0f, 30.0f, 0}, {4, 2, 18.0f, 29.0f, 20},
+                                    {5, 80, 16.0f, 24.0f, 70}, {6, 95, 15.0f, 22.0f, 90},
+                                    {0, 3, 14.0f, 25.0f, 30}};
+    for (const auto& d : days) base.forecast.days[base.forecast.count++] = d;
+  }
   base.route.valid = true;
   snprintf(base.route.callsign, sizeof(base.route.callsign), "AZU4521");
   snprintf(base.route.airline, sizeof(base.route.airline), "Azul Linhas Aéreas");
@@ -233,6 +267,50 @@ int main(int argc, char** argv) {
   snprintf(base.route.to_iata, sizeof(base.route.to_iata), "VCP");
   snprintf(base.route.from_city, sizeof(base.route.from_city), "Belo Horizonte");
   snprintf(base.route.to_city, sizeof(base.route.to_city), "Campinas");
+
+  // Overhead alert: a jet 1.2 km from home.
+  std::vector<Aircraft> alert_planes = planes;
+  alert_planes[0] = plane("AZU4521", "A20N", "AIRBUS A-320neo", "PR-YRA", lat, lon, 0.8f, 0.9f, 4200,
+                          190, 160);
+  ui::Model alert_base = base;
+  alert_base.planes = alert_planes.data();
+  // Emergency (squawk 7700) and a military aircraft.
+  std::vector<Aircraft> emerg_planes = planes;
+  emerg_planes[1].squawk = 7700;
+  emerg_planes[1].flags = services::adsb::kFlagEmergency;
+  emerg_planes[3] = plane("FAB2101", "C390", "EMBRAER KC-390", "FAB2853", lat, lon, -3.0f, 3.5f, 9000,
+                          280, 70);
+  emerg_planes[3].flags = services::adsb::kFlagMilitary;
+  ui::Model emerg_base = base;
+  emerg_base.planes = emerg_planes.data();
+
+  // Sample agenda (made-up items) for the agenda page.
+  ui::Model agenda_base = base;
+  agenda_base.time.hour = 10;
+  agenda_base.time.minute = 5;
+  {
+    ui::AgendaModel& a = agenda_base.agenda;
+    a.configured = a.valid = true;
+    auto ev = [&](const char* time, const char* title) {
+      ui::AgendaItem& it = a.items[a.count++];
+      snprintf(it.time, sizeof(it.time), "%s", time);
+      snprintf(it.title, sizeof(it.title), "%s", title);
+    };
+    auto task = [&](const char* title, bool done) {
+      ui::AgendaItem& it = a.items[a.count++];
+      it.task = true;
+      it.done = done;
+      snprintf(it.title, sizeof(it.title), "%s", title);
+    };
+    ev("", "Aniversário da Ana");
+    ev("08:30", "Academia");
+    ev("10:30", "Reunião com a equipe");
+    ev("14:00", "Dentista");
+    ev("19:30", "Jantar com a família");
+    task("Comprar pão", true);
+    task("Ligar para o banco", false);
+    task("Pagar a conta de luz", false);
+  }
 
   auto weather = [&](const char* name, int code, bool day, float temp, float feels, float lo,
                      float hi, int rain) {
@@ -250,7 +328,14 @@ int main(int argc, char** argv) {
       weather("clima_tempestade", 95, true, 21.0f, 22.0f, 17.0f, 26.0f, 80),
       weather("clima_noite", 0, false, 17.0f, 16.0f, 14.0f, 27.0f, 0),
       {"relogio", ui::Page::Clock, base, 4000, true},
-      {"aviao", ui::Page::Nearest, base, 4000, false},
+      [&] {
+        Scenario s{"relogio_noite", ui::Page::Clock, base, 4000, true};
+        setTime(&s.model.time, 23, 41, 12, 0);
+        s.model.weather.is_day = false;  // clear night: real moon phase
+        s.dim = 20 * 256 / 100;
+        return s;
+      }(),
+      {"aviao", ui::Page::Nearest, base, 7000, false},
       [&] {
         Scenario s{"aviao_raio", ui::Page::Nearest, base, 3000, false, true};
         s.model.nearest_radius_km = 5.0f;
@@ -259,15 +344,54 @@ int main(int argc, char** argv) {
       }(),
       {"ar_sol", ui::Page::AirSun, base, 4000, false},
       {"sobre", ui::Page::About, base, 6000, false},
+      [&] {
+        Scenario s{"calendario", ui::Page::Calendar, base, 5000, false};
+        setTime(&s.model.time, 9, 41, 12, 0);
+        s.model.time.month = 10;
+        s.model.time.day = 3;
+        s.model.time.wday = 6;
+        s.month_change_ms = 3000;  // double tap: November slides in
+        return s;
+      }(),
+      [&] {
+        Scenario s{"calendario_feriado", ui::Page::Calendar, base, 2500, false};
+        s.model.time.month = 10;
+        s.model.time.day = 12;
+        s.model.time.wday = 1;
+        return s;
+      }(),
+      [&] {
+        Scenario s{"aviao_alerta", ui::Page::Nearest, alert_base, 4000, false};
+        s.alert = true;
+        return s;
+      }(),
+      {"aviao_emergencia", ui::Page::Nearest, emerg_base, 4000, false},
+      {"agenda", ui::Page::Agenda, agenda_base, 13000, false},
+      {"previsao", ui::Page::Forecast, base, 4000, false},
+      {"resumo", ui::Page::Summary, base, 4000, false},
+      [&] {
+        Scenario s{"previsao_horas", ui::Page::Forecast, base, 4000, false};
+        s.model.forecast_hours = true;
+        return s;
+      }(),
+      [&] {
+        Scenario s{"agenda_livre", ui::Page::Agenda, base, 2500, false};
+        s.model.agenda.configured = s.model.agenda.valid = true;
+        return s;
+      }(),
+      {"agenda_configurar", ui::Page::Agenda, base, 2500, false},
+      {"radar_emergencia", ui::Page::Radar, emerg_base, 4000, true},
   };
   // Same pages in the other languages (short clips, for checking layouts).
   const std::pair<const char*, ui::i18n::Lang> langs[] = {
       {"en", ui::i18n::Lang::EN}, {"es", ui::i18n::Lang::ES}, {"zh", ui::i18n::Lang::ZH}};
   for (const auto& [suffix, lang] : langs) {
     for (const auto& [name, page] : {std::pair<const char*, ui::Page>{"radar", ui::Page::Radar},
-                                     {"clima", ui::Page::Weather}, {"relogio", ui::Page::Clock},
+                                     {"clima", ui::Page::Weather}, {"relogio", ui::Page::Clock}, {"calendario", ui::Page::Calendar},
+                                     {"agenda", ui::Page::Agenda}, {"previsao", ui::Page::Forecast}, {"resumo", ui::Page::Summary},
                                      {"aviao", ui::Page::Nearest}, {"ar_sol", ui::Page::AirSun}}) {
-      Scenario s{std::string(name) + "_" + suffix, page, base, 1600, page == ui::Page::Clock};
+      Scenario s{std::string(name) + "_" + suffix, page, page == ui::Page::Agenda ? agenda_base : base,
+                 1600, page == ui::Page::Clock};
       if (page == ui::Page::Weather) s.model.weather.code = 2;
       s.lang = lang;
       scenarios.push_back(s);
@@ -320,6 +444,11 @@ int main(int argc, char** argv) {
     for (uint32_t t = 0; t < s.duration_ms; t += kStep) {
       if (s.tick_clock) advance(&s.model.time, start, t);
       if (s.radius_toast) s.model.nearest_radius_changed_ago_ms = t;
+      if (s.alert) s.model.alert_ago_ms = t;
+      if (s.month_change_ms >= 0 && t >= static_cast<uint32_t>(s.month_change_ms)) {
+        s.model.calendar_month_offset = 1;
+        s.model.calendar_changed_ago_ms = t - s.month_change_ms;
+      }
       ui::i18n::g_lang = s.lang;
       const auto a = std::chrono::steady_clock::now();
       s.model.frame_buffer = frame.getBuffer();
@@ -341,6 +470,7 @@ int main(int argc, char** argv) {
           if (mismatched <= 2) printf("   t=%u: %d px differ, rows %d..%d\n", t, diff, rmin, rmax);
         }
       }
+      ui::draw::dimPixels(static_cast<uint16_t*>(frame.getBuffer()), 240, 240, 0, s.dim);
       frame.readRect(0, 0, 240, 240, rgb.data());
       fwrite(rgb.data(), 3, rgb.size(), f);
       ++frames;

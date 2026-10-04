@@ -1,6 +1,7 @@
 // Nearest-aircraft page: who is flying closest to home, where it is going,
 // and which way to look.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -137,6 +138,96 @@ void drawEmpty(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   draw::text(g, Id::S14, i18n::tr(i18n::S::TwoTapsHint), kCx, 209, mix(bgAt(209), kAccent, blink));
 }
 
+/**
+ * "10.668 m  •  850 km/h". The altitude switches between metres and feet
+ * every 3 s with a short cross-fade; the bullet stays put so nothing jumps.
+ */
+void altitudeAndSpeed(lgfx::LovyanGFX& g, const services::adsb::Aircraft& p, uint32_t t) {
+  constexpr int kY = 189;
+  constexpr uint32_t kPeriodMs = 3000;
+  constexpr uint32_t kFadeMs = 220;
+  const Rgb color{200, 214, 236};
+  const float pa = appear(t, 850);
+  if (pa <= 0.0f) {
+    return;
+  }
+  const int yy = kY + static_cast<int>((1.0f - pa) * 8.0f);
+  const uint16_t c = mix(bgAt(yy), color, pa);
+  char speed[16];
+  snprintf(speed, sizeof(speed), "%d km/h", static_cast<int>(lroundf(p.gs_knots * 1.852f)));
+  char buf[40];
+  if (p.on_ground || !p.has_alt) {
+    snprintf(buf, sizeof(buf), "%s  •  %s", p.on_ground ? i18n::tr(i18n::S::OnGround) : "— m",
+             speed);
+    draw::text(g, Id::S17, buf, kCx, yy, c);
+    return;
+  }
+
+  const bool feet = (t / kPeriodMs) % 2 == 1;
+  const uint32_t phase = t % kPeriodMs;
+  float k = 1.0f;  // fade at both ends of each half
+  if (phase < kFadeMs) {
+    k = phase / static_cast<float>(kFadeMs);
+  } else if (phase > kPeriodMs - kFadeMs) {
+    k = (kPeriodMs - phase) / static_cast<float>(kFadeMs);
+  }
+  if (t < kPeriodMs) {
+    k = phase > kPeriodMs - kFadeMs ? k : 1.0f;  // no fade on first entry
+  }
+  char n[12];
+  groupThousands(n, sizeof(n),
+                 feet ? static_cast<int>(lroundf(p.alt_ft))
+                      : static_cast<int>(lroundf(p.alt_ft * 0.3048f)));
+  char alt[20];
+  snprintf(alt, sizeof(alt), "%s %s", n, feet ? "ft" : "m");
+
+  constexpr int kGap = 9;
+  draw::text(g, Id::S17, alt, kCx - kGap, yy, mix(bgAt(yy), color, pa * k),
+             textdatum_t::middle_right);
+  draw::text(g, Id::S17, "•", kCx, yy, c);
+  draw::text(g, Id::S17, speed, kCx + kGap, yy, c, textdatum_t::middle_left);
+}
+
+/**
+ * Top label and a pulsing ring around the screen edge: red for an emergency,
+ * amber when the plane is passing overhead, green label for military.
+ */
+void headerAndHalo(lgfx::LovyanGFX& g, const Model& m, const services::adsb::Aircraft& p,
+                   uint32_t t) {
+  constexpr uint32_t kAlertMs = 30000;
+  const bool emergency = p.flags & services::adsb::kFlagEmergency;
+  const bool overhead = m.alert_ago_ms < kAlertMs;
+  const bool military = p.flags & services::adsb::kFlagMilitary;
+  const float pa = appear(t, 250);
+  if (!emergency && !overhead) {
+    line(g, Id::S14, i18n::tr(military ? i18n::S::Military : i18n::S::Nearest), 30,
+         military ? Rgb{150, 214, 110} : kAccent, pa);
+    return;
+  }
+  const Rgb hot = emergency ? Rgb{255, 70, 70} : Rgb{255, 170, 40};
+  const float speed = emergency ? 0.009f : 0.006f;
+  const float pulse = 0.5f + 0.5f * sinf(t * speed);
+  // A bright flash right when the alert starts, then a steady pulse.
+  const uint32_t since = overhead ? m.alert_ago_ms : t;
+  const float flash = 1.0f - draw::clamp01(since / 900.0f);
+  const float k = std::max(flash, 0.35f + 0.65f * pulse) * draw::clamp01(t / 300.0f);
+  draw::ring(g, kCx, 120, 114, 119, 0.0f, 360.0f, mix(bgAt(40), hot, k));
+  draw::ring(g, kCx, 120, 110, 113, 0.0f, 360.0f, mix(bgAt(40), hot, k * 0.35f));
+
+  char label[40];
+  if (emergency && p.squawk) {
+    snprintf(label, sizeof(label), "%s %u", emergencyLabel(p), p.squawk);
+  } else {
+    snprintf(label, sizeof(label), "%s", emergency ? emergencyLabel(p) : i18n::tr(i18n::S::Overhead));
+  }
+  // Pill behind the label so it reads as a warning.
+  const int tw = draw::textWidth(g, Id::S14, label);
+  const int y = 30;
+  const Rgb pill = lerp(bgAt(y), hot, 0.25f + 0.25f * pulse);
+  g.fillRoundRect(kCx - tw / 2 - 9, y - 10, tw + 18, 20, 10, mix(bgAt(y), pill, pa));
+  draw::text(g, Id::S14, label, kCx, y + 1, mix(bgAt(y), Rgb{255, 240, 220}, pa));
+}
+
 }  // namespace
 
 int nearestPlane(const Model& m, float* dist_km, float* bearing_deg) {
@@ -155,7 +246,10 @@ int nearestPlane(const Model& m, float* dist_km, float* bearing_deg) {
     if (d > m.nearest_radius_km) {
       continue;
     }
-    if (d < best_d) {
+    // An aircraft in emergency wins over closer ones.
+    const bool emerg = p.flags & services::adsb::kFlagEmergency;
+    const bool best_emerg = best >= 0 && (m.planes[best].flags & services::adsb::kFlagEmergency);
+    if ((emerg && !best_emerg) || (emerg == best_emerg && d < best_d)) {
       best_d = d;
       best = static_cast<int>(i);
       best_b = atan2f(dx, dy) / kDegToRad;
@@ -185,7 +279,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   const services::adsb::Aircraft& p = m.planes[idx];
   const bool route = m.route.valid && strcmp(m.route.callsign, p.callsign) == 0;
 
-  line(g, Id::S14, i18n::tr(i18n::S::Nearest), 30, kAccent, appear(t, 250));
+  headerAndHalo(g, m, p, t);
   line(g, Id::S28, p.callsign[0] ? p.callsign : "—", 56, kWhite, appear(t, 350));
 
   char buf[48];
@@ -241,18 +335,7 @@ uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
     draw::text(g, Id::S17, buf, ax + 20, yy, mix(bgAt(yy), kWhite, pd), textdatum_t::middle_left);
   }
 
-  char alt[20];
-  if (p.on_ground) {
-    snprintf(alt, sizeof(alt), "%s", i18n::tr(i18n::S::OnGround));
-  } else if (p.has_alt) {
-    char n[12];
-    groupThousands(n, sizeof(n), static_cast<int>(lroundf(p.alt_ft * 0.3048f)));
-    snprintf(alt, sizeof(alt), "%s m", n);
-  } else {
-    snprintf(alt, sizeof(alt), "— m");
-  }
-  snprintf(buf, sizeof(buf), "%s  •  %d km/h", alt, static_cast<int>(lroundf(p.gs_knots * 1.852f)));
-  line(g, Id::S17, buf, 189, Rgb{200, 214, 236}, appear(t, 850));
+  altitudeAndSpeed(g, p, t);
 
   char r[16];
   formatRadius(r, sizeof(r), m.nearest_radius_km);

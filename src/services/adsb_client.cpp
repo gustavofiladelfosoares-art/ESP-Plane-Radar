@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 #include "config.h"
@@ -191,6 +192,20 @@ void fillTagFields(Aircraft* ac, const JsonObject& plane) {
   ac->has_alt = !ac->on_ground && (readJsonFloat(plane, "alt_baro", &alt) ||
                                    readJsonFloat(plane, "alt_geom", &alt));
   ac->alt_ft = ac->has_alt ? static_cast<int32_t>(lroundf(alt)) : 0;
+
+  ac->squawk = 0;
+  ac->flags = 0;
+  if (plane["squawk"].is<const char*>()) {
+    ac->squawk = static_cast<uint16_t>(atoi(plane["squawk"].as<const char*>()));
+  }
+  const char* emergency = plane["emergency"].is<const char*>() ? plane["emergency"].as<const char*>() : "";
+  if (ac->squawk == 7500 || ac->squawk == 7600 || ac->squawk == 7700 ||
+      (emergency[0] != '\0' && strcmp(emergency, "none") != 0)) {
+    ac->flags |= kFlagEmergency;
+  }
+  if ((plane["dbFlags"] | 0) & 1) {
+    ac->flags |= kFlagMilitary;
+  }
 }
 
 }  // namespace
@@ -219,7 +234,7 @@ bool fetchUpdate(double center_lat, double center_lon, float fetch_radius_km) {
   for (const char* key :
        {"lat", "lon", "true_heading", "mag_heading", "track", "dir", "gs",
         "tas", "ias", "alt_baro", "alt_geom", "flight", "hex", "t",
-        "category", "desc", "r"}) {
+        "category", "desc", "r", "squawk", "emergency", "dbFlags"}) {
     f[key] = true;
   }
 

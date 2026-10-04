@@ -22,7 +22,14 @@ struct Aircraft {
   char desc[26];
   /** Registration, e.g. "PR-XMG". */
   char reg[10];
+  /** Transponder code (0 = unknown), e.g. 7700. */
+  uint16_t squawk;
+  /** kFlagEmergency / kFlagMilitary. */
+  uint8_t flags;
 };
+
+constexpr uint8_t kFlagEmergency = 1;  // squawk 7500/7600/7700 or declared emergency
+constexpr uint8_t kFlagMilitary = 2;   // adsb.fi dbFlags bit 0
 
 constexpr size_t kMaxAircraft = 48;
 

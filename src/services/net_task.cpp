@@ -4,6 +4,8 @@
 #include <WiFi.h>
 
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -11,10 +13,16 @@
 
 #include "config.h"
 #include "services/adsb_client.h"
+#include <cstdio>
+#include <cstring>
+
+#include "services/agenda.h"
 #include "services/clock.h"
 #include "services/map_service.h"
 #include "services/radar_location.h"
 #include "services/route.h"
+#include "services/shared.h"
+#include "services/sky_stats.h"
 #include "services/weather.h"
 #include "ui/radar_range.h"
 
@@ -24,6 +32,17 @@ namespace {
 
 volatile ui::Page s_page = ui::Page::Radar;
 volatile bool s_force_weather = false;
+volatile bool s_force_agenda = false;
+
+/** Feed the fresh aircraft list into today's sky summary. */
+void countForStats(double lat, double lon) {
+  ui::TimeModel tm;
+  clock::now(&tm);
+  if (!tm.valid) return;
+  SharedLock lock;
+  stats::record(adsb::aircraftList(), adsb::aircraftCount(), lat, lon,
+                (tm.year * 13 + tm.month) * 32 + tm.day);
+}
 volatile bool s_force_adsb = false;
 
 bool due(unsigned long last, unsigned long interval, bool ever) {
@@ -58,7 +77,12 @@ void taskMain(void*) {
       // The nearest page searches its own radius; the radar fills its screen.
       const float radius_km = page == ui::Page::Nearest ? ui::radar::nearestRadiusKm()
                                                         : ui::radar::adsbRadiusKm();
-      adsb::fetchUpdate(lat, lon, radius_km);
+      if (adsb::fetchUpdate(lat, lon, radius_km)) countForStats(lat, lon);
+    } else if (!wants_planes && ui::radar::alertEnabled() &&
+               millis() - last_adsb >= config::kAdsbAlertFetchIntervalMs) {
+      // Other pages: just a small area around home, for the overhead alert.
+      last_adsb = millis();
+      if (adsb::fetchUpdate(lat, lon, ui::radar::alertKm() + 2.0f)) countForStats(lat, lon);
     }
     // Routes: the nearest page's aircraft, and radar tags on close zooms.
     const bool radar_routes = page == ui::Page::Radar && ui::radar::rangeCurrent().ring3_km <= 25.0f;
@@ -83,6 +107,29 @@ void taskMain(void*) {
       air_tried = true;
       last_air = millis();
       air_ok = weather::fetchAir(lat, lon);
+    }
+
+    // Google Agenda: every 10 min (2 min after a failure), right away when the
+    // link changes or the agenda page opens with old data.
+    {
+      static unsigned long last_agenda = 0;
+      static bool agenda_ok = false;
+      static char agenda_url[ui::radar::kAgendaUrlMax + 1] = "";
+      static char url[ui::radar::kAgendaUrlMax + 1];
+      {
+        SharedLock lock;  // the setup portal may be writing it
+        snprintf(url, sizeof(url), "%s", ui::radar::agendaUrl());
+      }
+      const bool changed = strcmp(url, agenda_url) != 0;
+      const unsigned long every = agenda_ok ? config::kAgendaFetchIntervalMs : config::kWeatherRetryIntervalMs;
+      const bool stale = page == ui::Page::Agenda && millis() - last_agenda > config::kAgendaPageRefreshMs;
+      if (changed || s_force_agenda ||
+          (url[0] != '\0' && (last_agenda == 0 || millis() - last_agenda >= every || stale))) {
+        s_force_agenda = false;
+        snprintf(agenda_url, sizeof(agenda_url), "%s", url);
+        last_agenda = millis();
+        agenda_ok = agenda::fetch(url);
+      }
     }
 
     // Maps only matter on the radar; build them when nothing else is pending.
@@ -113,5 +160,7 @@ void setActivePage(ui::Page page) { s_page = page; }
 void refreshWeather() { s_force_weather = true; }
 
 void refreshAircraft() { s_force_adsb = true; }
+
+void refreshAgenda() { s_force_agenda = true; }
 
 }  // namespace services::net

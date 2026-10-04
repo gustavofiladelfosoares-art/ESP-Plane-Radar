@@ -8,7 +8,7 @@
 
 namespace ui {
 
-enum class Page : uint8_t { Radar, Weather, Clock, Nearest, AirSun, About, Count };
+enum class Page : uint8_t { Radar, Weather, Forecast, Clock, Calendar, Agenda, Nearest, Summary, AirSun, About, Count };
 
 constexpr int kPageCount = static_cast<int>(Page::Count);
 
@@ -21,8 +21,12 @@ uint32_t drawPage(Page page, lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 
 uint32_t drawRadarPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 uint32_t drawWeatherPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
+uint32_t drawForecastPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 uint32_t drawClockPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
+uint32_t drawCalendarPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
+uint32_t drawAgendaPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 uint32_t drawNearestPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
+uint32_t drawSummaryPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 uint32_t drawAirSunPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 uint32_t drawAboutPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 
@@ -30,6 +34,9 @@ uint32_t drawAboutPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms);
 constexpr int kRadarStages = 8;
 extern const char* const kRadarStageNames[kRadarStages];
 void radarProfile(uint32_t out_us[kRadarStages]);
+
+/** "EMERGÊNCIA" / "FALHA DE RÁDIO" / "SEQUESTRO" for an emergency aircraft. */
+const char* emergencyLabel(const services::adsb::Aircraft& a);
 
 /** Portuguese label for a WMO weather code. */
 const char* weatherLabel(int code, bool is_day);

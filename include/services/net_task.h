@@ -16,4 +16,7 @@ void refreshWeather();
 /** Fetch aircraft again right away (e.g. the search radius just changed). */
 void refreshAircraft();
 
+/** Fetch the Google Agenda again right away. */
+void refreshAgenda();
+
 }  // namespace services::net

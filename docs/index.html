@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ESP Plane Radar — instalar</title>
-  <meta name="description" content="Radar de aviões, clima, relógio e mais numa tela redonda com ESP32-C3. Instale direto pelo navegador. By Gustavo Soares.">
+  <meta name="description" content="Radar de aviões, clima, previsão, relógio, calendário, agenda e mais numa tela redonda com ESP32-C3. Instale direto pelo navegador. By Gustavo Soares.">
   <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js"
           integrity="sha384-9XfyvAabgkISlB/Xb3OpshGKpZx0TOt5Mmu78SeiNU3so/p4o2s9m66vy6Utdnom"
           crossorigin="anonymous"></script>
@@ -51,8 +51,10 @@
     <div>
       <h1>ESP <span>Plane Radar</span></h1>
       <div class="by">by Gustavo Soares</div>
-      <p class="lead">Radar de aviões ao vivo com mapa da sua região, clima animado, relógio,
-        avião mais próximo e qualidade do ar — numa telinha redonda com ESP32-C3.
+      <p class="lead">Radar de aviões ao vivo com mapa da sua região, clima animado com previsão
+        de 5 dias e 12 horas, relógio com modo noite, calendário com feriados, Google Agenda,
+        avião mais próximo com alerta “sobre você”, resumo do dia e qualidade do ar — numa
+        telinha redonda com ESP32-C3.
         Instale direto pelo navegador, sem programar nada.</p>
     </div>
   </header>
@@ -98,7 +100,9 @@
   <ul>
     <li><b>Toque</b>: próxima tela.</li>
     <li><b>Dois toques</b>: no radar muda o zoom (5 → 10 → 15 → 25 → 50 → 100 km);
-      na tela “avião mais próximo” muda o raio de busca (5 → 10 → 20 → 50 km).</li>
+      na tela “avião mais próximo” muda o raio de busca (5 → 10 → 20 → 50 km);
+      em “próximos dias” alterna dias/horas; no calendário vai para o próximo mês;
+      na agenda atualiza na hora.</li>
     <li><b>Segurar 3 s</b>: apaga o Wi-Fi e volta para a configuração.</li>
   </ul>
 
@@ -109,8 +113,16 @@
     <figure><img src="img/clima_chuva.webp" alt=""><figcaption>Clima (chuva)</figcaption></figure>
     <figure><img src="img/clima_tempestade.webp" alt=""><figcaption>Clima (tempestade)</figcaption></figure>
     <figure><img src="img/clima_noite.webp" alt=""><figcaption>Clima (noite)</figcaption></figure>
+    <figure><img src="img/previsao.webp" alt=""><figcaption>Próximos 5 dias</figcaption></figure>
+    <figure><img src="img/previsao_horas.webp" alt=""><figcaption>Próximas 12 horas</figcaption></figure>
     <figure><img src="img/relogio.webp" alt=""><figcaption>Relógio</figcaption></figure>
+    <figure><img src="img/relogio_noite.webp" alt=""><figcaption>Relógio no modo noite</figcaption></figure>
+    <figure><img src="img/calendario.webp" alt=""><figcaption>Calendário</figcaption></figure>
+    <figure><img src="img/agenda.webp" alt=""><figcaption>Agenda (Google)</figcaption></figure>
     <figure><img src="img/aviao.webp" alt=""><figcaption>Avião mais próximo</figcaption></figure>
+    <figure><img src="img/aviao_alerta.webp" alt=""><figcaption>Alerta “sobre você!”</figcaption></figure>
+    <figure><img src="img/radar_emergencia.webp" alt=""><figcaption>Emergência e militares</figcaption></figure>
+    <figure><img src="img/resumo.webp" alt=""><figcaption>Hoje no céu</figcaption></figure>
     <figure><img src="img/ar_sol.webp" alt=""><figcaption>Ar, UV e sol</figcaption></figure>
     <figure><img src="img/sobre.webp" alt=""><figcaption>Apresentação</figcaption></figure>
   </div>

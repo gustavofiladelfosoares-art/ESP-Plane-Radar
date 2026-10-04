@@ -24,8 +24,12 @@ APP_SRC := \
   $(ROOT)/src/ui/pages.cpp \
   $(ROOT)/src/ui/i18n.cpp \
   $(ROOT)/src/ui/page_weather.cpp \
+  $(ROOT)/src/ui/page_forecast.cpp \
   $(ROOT)/src/ui/page_clock.cpp \
+  $(ROOT)/src/ui/page_calendar.cpp \
+  $(ROOT)/src/ui/page_agenda.cpp \
   $(ROOT)/src/ui/page_nearest.cpp \
+  $(ROOT)/src/ui/page_summary.cpp \
   $(ROOT)/src/ui/page_airsun.cpp \
   $(ROOT)/src/ui/page_about.cpp \
   $(ROOT)/src/ui/radar_display.cpp \

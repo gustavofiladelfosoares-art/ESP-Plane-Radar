@@ -33,6 +33,15 @@ enum class S : uint16_t {
   // status screens
   WifiSetup, JoinNetwork, OpenBrowser, OrIp, ConnectingTo, NotConnected,
   CheckPassword, AndSignal, HoldBoot, ToSetupAgain, WifiCleared, Restarting,
+  // alerts and special aircraft
+  Overhead, Emergency, RadioFailure, Hijack, Military,
+  // calendar
+  Today, HolidayNewYear, HolidayCarnival, HolidayGoodFriday, HolidayTiradentes,
+  HolidayLabour, HolidayCorpusChristi, HolidayIndependence, HolidayAparecida,
+  HolidayAllSouls, HolidayRepublic, HolidayBlackAwareness, HolidayChristmas,
+  // agenda
+  NextDays, NextHours, SkyToday, AircraftSeen, Highest, Fastest, Closest, MostSeen,
+  FlightsFmt, NoSkyYet, AgendaLabel, FreeDay, NothingToday, LoadingAgenda, AgendaSetup, AllDay, PageFmt,
   Count
 };
 
@@ -41,6 +50,12 @@ const char* tr(S s);
 /** Short weekday (0 = Sunday) and month (1..12) names. */
 const char* weekday(int wday);
 const char* month(int month);
+
+/** Weekday initial for the calendar header (0 = Sunday). */
+const char* weekdayInitial(int wday);
+
+/** "OUTUBRO 2026" / "OCTOBER 2026" / "2026年10月". */
+void formatMonthYear(char* out, size_t len, int month, int year);
 
 /** "TER, 29 SET" / "TUE, 29 SEP" / "9月29日 周二". */
 void formatDate(char* out, size_t len, int wday, int day, int month);

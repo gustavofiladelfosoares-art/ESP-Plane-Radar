@@ -16,6 +16,7 @@
 
 #include "config.h"
 #include "services/radar_location.h"
+#include "services/shared.h"
 #include "ui/radar_range.h"
 #include "ui/status_screens.h"
 
@@ -117,6 +118,32 @@ char s_sweep_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_sweep("show_sweep", "Mostrar varredura girando no radar", "T", 2,
                                    s_sweep_checkbox_attrs, WFM_LABEL_AFTER);
 
+char s_night_checkbox_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_night("night_on", "Relógio mais fraco à noite", "T", 2,
+                                   s_night_checkbox_attrs, WFM_LABEL_AFTER);
+constexpr char kHourAttrs[] = " type=\"number\" min=\"0\" max=\"23\"";
+WiFiManagerParameter s_param_night_start("night_from", "Começa às (hora, 0-23)", "23", 3,
+                                         kHourAttrs);
+WiFiManagerParameter s_param_night_end("night_to", "Termina às (hora, 0-23)", "7", 3, kHourAttrs);
+WiFiManagerParameter s_param_night_level("night_lvl", "Brilho à noite (%, 5-100)", "20", 4,
+                                         " type=\"number\" min=\"5\" max=\"100\"");
+
+char s_alert_checkbox_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_alert("alert_on", "Avisar quando um avião passar por cima", "T", 2,
+                                   s_alert_checkbox_attrs, WFM_LABEL_AFTER);
+WiFiManagerParameter s_param_alert_km("alert_km", "Distância do aviso (km, 1-20)", "3", 3,
+                                      " type=\"number\" min=\"1\" max=\"20\"");
+char s_holidays_checkbox_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_holidays("holidays", "Mostrar feriados do Brasil no calendário", "T", 2,
+                                      s_holidays_checkbox_attrs, WFM_LABEL_AFTER);
+
+WiFiManagerParameter s_param_auto_page("auto_page",
+                                       "Trocar de página sozinho a cada (segundos, 0 = nunca)", "0", 4,
+                                       " type=\"number\" min=\"0\" max=\"255\"");
+WiFiManagerParameter s_param_agenda("agenda_url",
+                                    "Link da Google Agenda (opcional, veja o guia no GitHub)", "",
+                                    ui::radar::kAgendaUrlMax, " type=\"url\"");
+
 char s_swap_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_swap("swap_rb", "Corrigir cores (trocar vermelho e azul)", "T", 2,
                                   s_swap_checkbox_attrs, WFM_LABEL_AFTER);
@@ -137,6 +164,27 @@ void refreshPortalParamDefaults() {
   snprintf(s_sweep_checkbox_attrs, sizeof(s_sweep_checkbox_attrs), "type=\"checkbox\"%s",
            ui::radar::showSweep() ? " checked" : "");
   s_param_sweep.setValue("T", 2);
+  snprintf(s_night_checkbox_attrs, sizeof(s_night_checkbox_attrs), "type=\"checkbox\"%s",
+           ui::radar::nightDimEnabled() ? " checked" : "");
+  s_param_night.setValue("T", 2);
+  char num[5];
+  snprintf(num, sizeof(num), "%u", ui::radar::nightStartHour());
+  s_param_night_start.setValue(num, 3);
+  snprintf(num, sizeof(num), "%u", ui::radar::nightEndHour());
+  s_param_night_end.setValue(num, 3);
+  snprintf(num, sizeof(num), "%u", ui::radar::nightLevelPercent());
+  s_param_night_level.setValue(num, 4);
+  snprintf(s_alert_checkbox_attrs, sizeof(s_alert_checkbox_attrs), "type=\"checkbox\"%s",
+           ui::radar::alertEnabled() ? " checked" : "");
+  s_param_alert.setValue("T", 2);
+  snprintf(num, sizeof(num), "%d", static_cast<int>(ui::radar::alertKm()));
+  s_param_alert_km.setValue(num, 3);
+  snprintf(s_holidays_checkbox_attrs, sizeof(s_holidays_checkbox_attrs), "type=\"checkbox\"%s",
+           ui::radar::showHolidays() ? " checked" : "");
+  s_param_holidays.setValue("T", 2);
+  s_param_agenda.setValue(ui::radar::agendaUrl(), ui::radar::kAgendaUrlMax);
+  snprintf(num, sizeof(num), "%u", ui::radar::autoPageSec());
+  s_param_auto_page.setValue(num, 4);
   snprintf(s_swap_checkbox_attrs, sizeof(s_swap_checkbox_attrs), "type=\"checkbox\"%s",
            ui::radar::swapColors() ? " checked" : "");
   s_param_swap.setValue("T", 2);
@@ -155,6 +203,15 @@ void onPortalParamsSaved() {
   ui::radar::saveRunwaysFromPortal(s_param_runways.getValue());
   ui::radar::saveLanguageFromPortal(s_param_lang.getValue());
   ui::radar::saveSweepFromPortal(s_param_sweep.getValue());
+  ui::radar::saveNightFromPortal(s_param_night.getValue(), s_param_night_start.getValue(),
+                                 s_param_night_end.getValue(), s_param_night_level.getValue());
+  ui::radar::saveAlertFromPortal(s_param_alert.getValue(), s_param_alert_km.getValue());
+  ui::radar::saveHolidaysFromPortal(s_param_holidays.getValue());
+  ui::radar::saveAutoPageFromPortal(s_param_auto_page.getValue());
+  {
+    services::SharedLock lock;  // the network task reads the link
+    ui::radar::saveAgendaFromPortal(s_param_agenda.getValue());
+  }
   ui::radar::saveSwapColorsFromPortal(s_param_swap.getValue());
 }
 
@@ -167,6 +224,15 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_lang_ui);
   wm.addParameter(&s_param_lang);
   wm.addParameter(&s_param_sweep);
+  wm.addParameter(&s_param_night);
+  wm.addParameter(&s_param_night_start);
+  wm.addParameter(&s_param_night_end);
+  wm.addParameter(&s_param_night_level);
+  wm.addParameter(&s_param_alert);
+  wm.addParameter(&s_param_alert_km);
+  wm.addParameter(&s_param_holidays);
+  wm.addParameter(&s_param_auto_page);
+  wm.addParameter(&s_param_agenda);
   wm.addParameter(&s_param_swap);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }

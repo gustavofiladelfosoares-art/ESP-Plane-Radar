@@ -39,6 +39,13 @@ int textWidth(lgfx::LovyanGFX& g, fonts::Id font, const char* s);
 void fitText(lgfx::LovyanGFX& g, fonts::Id font, const char* in, int max_w,
              char* out, size_t out_len);
 
+/**
+ * Darken a block of rendered pixels (RGB565 as LovyanGFX stores it, bytes
+ * swapped). level is 0..256 (256 = unchanged); a 4×4 ordered dither keeps
+ * dark gradients smooth. y0 is the screen row of the first pixel.
+ */
+void dimPixels(uint16_t* px, int width, int rows, int y0, uint16_t level);
+
 /** Page indicator dots along the bottom of the round screen. */
 void pageDots(lgfx::LovyanGFX& g, int index, int count);
 
@@ -51,6 +58,14 @@ void cloud(lgfx::LovyanGFX& g, float cx, float cy, float scale, const Rgb& light
            const Rgb& shade);
 /** Crescent moon (lit on the right). */
 void moon(lgfx::LovyanGFX& g, int cx, int cy, int r, const Rgb& color);
+/** Moon phase 0..1 (0 = new, 0.5 = full) on a calendar date. */
+float moonPhase(int year, int month, int day);
+/**
+ * Moon disc lit for the phase, with a soft glow; p fades it in. In the
+ * southern hemisphere the waxing moon is lit on the left (mirrored).
+ */
+void moonPhaseIcon(lgfx::LovyanGFX& g, int cx, int cy, int r, float phase, bool south,
+                   const Rgb& bg, float p = 1.0f);
 /** Teardrop pointing up, centered on (cx, cy). */
 void raindrop(lgfx::LovyanGFX& g, int cx, int cy, int h, uint16_t color);
 /** Airplane silhouette, nose toward heading_deg (0 = up / north). */

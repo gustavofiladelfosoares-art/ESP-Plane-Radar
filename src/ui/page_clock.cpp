@@ -106,7 +106,8 @@ void drawSecondsRing(lgfx::LovyanGFX& g, float sec_deg, uint32_t t) {
   g.fillSmoothCircle(static_cast<int>(x), static_cast<int>(y), 3, rgb(150, 205, 255));
 }
 
-void drawMiniWeather(lgfx::LovyanGFX& g, const WeatherModel& w, uint32_t t) {
+void drawMiniWeather(lgfx::LovyanGFX& g, const WeatherModel& w, const TimeModel& tm, bool south,
+                     uint32_t t) {
   if (!w.valid) {
     return;
   }
@@ -123,6 +124,9 @@ void drawMiniWeather(lgfx::LovyanGFX& g, const WeatherModel& w, uint32_t t) {
   const Rgb bg = bgAt(kCx, y);
   if (w.code == 0 && w.is_day) {
     draw::sun(g, x0 + 10, y, 7, p, t * 0.02f, bg);
+  } else if (!w.is_day && w.code <= 2 && tm.valid) {
+    // Clear night: the real phase of tonight's moon.
+    draw::moonPhaseIcon(g, x0 + 10, y, 8, draw::moonPhase(tm.year, tm.month, tm.day), south, bg, p);
   } else if (w.code == 0) {
     draw::moon(g, x0 + 10, y, 8, lerp(bg, Rgb{240, 236, 210}, p));
   } else {
@@ -155,7 +159,7 @@ uint32_t drawClockPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   drawSecondsRing(g, sec * 6.0f, t);
   drawTicks(g, t);
   drawNumbers(g, t);
-  drawMiniWeather(g, m.weather, t);
+  drawMiniWeather(g, m.weather, m.time, m.lat < 0.0, t);
 
   // Date + digital time under the center.
   const float info = draw::easeOutCubic(draw::progress(t, 600, 500));

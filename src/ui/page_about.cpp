@@ -123,7 +123,7 @@ uint32_t drawAboutPage(lgfx::LovyanGFX& g, const Model& m, uint32_t t) {
   fadeText(g, Id::S22, "PLANE RADAR", 94, kBlue, t, 250);
   fadeText(g, Id::S14, "made by", 119, kMuted, t, 650);
   author(g, t);
-  fadeText(g, Id::S14, "v2.1.0 • 2026", 176, kDim, t, 2200);
+  fadeText(g, Id::S14, "v2.2.0 • 2026", 176, kDim, t, 2200);
   fadeText(g, Id::S14, "base: MatixYo • MIT", 196, kDim, t, 2400);
 
   draw::pageDots(g, static_cast<int>(Page::About), kPageCount);

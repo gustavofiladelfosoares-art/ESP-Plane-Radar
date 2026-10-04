@@ -10,16 +10,32 @@ uint32_t drawPage(Page page, lgfx::LovyanGFX& g, const Model& m, uint32_t t_ms) 
       return drawRadarPage(g, m, t_ms);
     case Page::Weather:
       return drawWeatherPage(g, m, t_ms);
+    case Page::Forecast:
+      return drawForecastPage(g, m, t_ms);
     case Page::Clock:
       return drawClockPage(g, m, t_ms);
+    case Page::Calendar:
+      return drawCalendarPage(g, m, t_ms);
+    case Page::Agenda:
+      return drawAgendaPage(g, m, t_ms);
     case Page::Nearest:
       return drawNearestPage(g, m, t_ms);
+    case Page::Summary:
+      return drawSummaryPage(g, m, t_ms);
     case Page::AirSun:
       return drawAirSunPage(g, m, t_ms);
     case Page::About:
       return drawAboutPage(g, m, t_ms);
     default:
       return 1000;
+  }
+}
+
+const char* emergencyLabel(const services::adsb::Aircraft& a) {
+  switch (a.squawk) {
+    case 7500: return i18n::tr(i18n::S::Hijack);
+    case 7600: return i18n::tr(i18n::S::RadioFailure);
+    default: return i18n::tr(i18n::S::Emergency);
   }
 }
 

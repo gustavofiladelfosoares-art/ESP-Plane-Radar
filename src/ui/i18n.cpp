@@ -76,6 +76,62 @@ constexpr const char* kText[static_cast<int>(S::Count)][kLangCount] = {
     {"para configurar de novo", "to set up again", "para configurar de nuevo", "以重新设置"},
     {"Wi-Fi apagado", "Wi-Fi cleared", "Wi-Fi borrado", "Wi-Fi 已清除"},
     {"Reiniciando…", "Restarting…", "Reiniciando…", "正在重启…"},
+
+    {"SOBRE VOCÊ!", "OVERHEAD!", "¡SOBRE TI!", "头顶飞过！"},
+    {"EMERGÊNCIA", "EMERGENCY", "EMERGENCIA", "紧急情况"},
+    {"FALHA DE RÁDIO", "RADIO FAILURE", "FALLA DE RADIO", "无线电故障"},
+    {"SEQUESTRO", "HIJACK", "SECUESTRO", "劫机"},
+    {"MILITAR", "MILITARY", "MILITAR", "军用"},
+
+    {"Hoje", "Today", "Hoy", "今天"},
+    {"Ano Novo", "New Year", "Año Nuevo", "元旦"},
+    {"Carnaval", "Carnival", "Carnaval", "狂欢节"},
+    {"Sexta Santa", "Good Friday", "Viernes Santo", "耶稣受难日"},
+    {"Tiradentes", "Tiradentes", "Tiradentes", "蒂拉登特斯日"},
+    {"Dia do Trabalho", "Labour Day", "Día del Trabajo", "劳动节"},
+    {"Corpus Christi", "Corpus Christi", "Corpus Christi", "基督圣体节"},
+    {"Independência", "Independence Day", "Independencia", "独立日"},
+    {"Aparecida", "Aparecida", "Aparecida", "圣母显灵节"},
+    {"Finados", "All Souls' Day", "Día de Difuntos", "万灵节"},
+    {"República", "Republic Day", "Día de la República", "共和国日"},
+    {"Consciência Negra", "Black Awareness", "Conciencia Negra", "黑人意识日"},
+    {"Natal", "Christmas", "Navidad", "圣诞节"},
+
+    {"PRÓXIMOS DIAS", "NEXT DAYS", "PRÓXIMOS DÍAS", "未来五天"},
+    {"PRÓXIMAS HORAS", "NEXT HOURS", "PRÓXIMAS HORAS", "未来12小时"},
+    {"HOJE NO CÉU", "TODAY IN THE SKY", "HOY EN EL CIELO", "今日天空"},
+    {"aviões vistos", "aircraft seen", "aviones vistos", "架飞机"},
+    {"Mais alto", "Highest", "Más alto", "最高"},
+    {"Mais rápido", "Fastest", "Más rápido", "最快"},
+    {"Mais perto", "Closest", "Más cerca", "最近"},
+    {"Mais vista", "Most seen", "Más vista", "最常见"},
+    {"%d voos", "%d flights", "%d vuelos", "%d 次"},
+    {"Contando os aviões…", "Counting aircraft…", "Contando aviones…", "正在统计飞机…"},
+    {"AGENDA", "AGENDA", "AGENDA", "日程"},
+    {"Dia livre!", "Free day!", "¡Día libre!", "今天很轻松！"},
+    {"Nada marcado hoje", "Nothing planned today", "Nada para hoy", "今天没有安排"},
+    {"Carregando agenda…", "Loading agenda…", "Cargando agenda…", "正在加载日程…"},
+    {"Cole o link da agenda em", "Paste your agenda link at", "Pega el enlace de la agenda en",
+     "在此粘贴日程链接："},
+    {"dia todo", "all day", "todo el día", "全天"},
+    {"%d de %d", "%d of %d", "%d de %d", "%d / %d"},
+};
+
+constexpr const char* kWeekInitials[kLangCount][7] = {
+    {"D", "S", "T", "Q", "Q", "S", "S"},
+    {"S", "M", "T", "W", "T", "F", "S"},
+    {"D", "L", "M", "X", "J", "V", "S"},
+    {"日", "一", "二", "三", "四", "五", "六"},
+};
+
+constexpr const char* kMonthsFull[kLangCount][12] = {
+    {"JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO",
+     "OUTUBRO", "NOVEMBRO", "DEZEMBRO"},
+    {"JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER",
+     "OCTOBER", "NOVEMBER", "DECEMBER"},
+    {"ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE",
+     "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"},
+    {"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"},
 };
 
 constexpr const char* kWeekdays[kLangCount][7] = {
@@ -117,6 +173,17 @@ int lang() {
 const char* tr(S s) { return kText[static_cast<int>(s)][lang()]; }
 
 const char* weekday(int wday) { return kWeekdays[lang()][((wday % 7) + 7) % 7]; }
+
+const char* weekdayInitial(int wday) { return kWeekInitials[lang()][((wday % 7) + 7) % 7]; }
+
+void formatMonthYear(char* out, size_t len, int m, int year) {
+  const char* name = kMonthsFull[lang()][((m - 1) % 12 + 12) % 12];
+  if (g_lang == Lang::ZH) {
+    snprintf(out, len, "%d年%s", year, name);
+  } else {
+    snprintf(out, len, "%s %d", name, year);
+  }
+}
 
 const char* month(int m) { return kMonths[lang()][((m - 1) % 12 + 12) % 12]; }
 

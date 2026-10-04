@@ -22,6 +22,8 @@ bool open(WiFiClientSecure& client, HTTPClient& http, const char* url, const cha
   http.setUserAgent(kUserAgent);
   http.setTimeout(timeout_ms);
   http.setConnectTimeout(5000);
+  // Google Apps Script answers with a redirect to googleusercontent.com.
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   const int code = http.GET();
   if (code != HTTP_CODE_OK) {
     Serial.printf("%s: HTTP %d\n", tag, code);

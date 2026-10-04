@@ -61,6 +61,11 @@ constexpr double kDefaultRadarLon = -43.938600;
 
 /** Poll adsb.fi (API public limit: 1 req/s). */
 constexpr unsigned long kAdsbFetchIntervalMs = 3000;
+/** Off the plane pages: small-area checks for the overhead alert. */
+constexpr unsigned long kAdsbAlertFetchIntervalMs = 10000;
+/** Google Agenda refresh, and how old it may be when its page opens. */
+constexpr unsigned long kAgendaFetchIntervalMs = 10UL * 60UL * 1000UL;
+constexpr unsigned long kAgendaPageRefreshMs = 2UL * 60UL * 1000UL;
 /** Legacy scale unused — fetch uses radar::fetchRadiusKm() to screen edge. */
 constexpr float kAdsbFetchRadiusScale = 1.0f;
 /** false = hide aircraft with alt_baro "ground"; true = show them too. */

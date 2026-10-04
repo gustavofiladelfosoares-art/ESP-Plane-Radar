@@ -39,6 +39,9 @@ constexpr size_t kRangePresetCount =
 
 /** Search radius choices for the nearest-aircraft page (double tap cycles). */
 constexpr float kNearestRadiiKm[] = {5.0f, 10.0f, 20.0f, 50.0f};
+/** Longest Google Agenda link we keep. */
+constexpr size_t kAgendaUrlMax = 320;
+
 constexpr size_t kNearestRadiusCount = sizeof(kNearestRadiiKm) / sizeof(kNearestRadiiKm[0]);
 
 /** Load saved range and distance units from flash. Call once after boot. */
@@ -67,6 +70,36 @@ void saveLanguageFromPortal(const char* value);
 /** Rotating sweep line on the radar (off by default); settable from the portal. */
 bool showSweep();
 void saveSweepFromPortal(const char* checkbox_value);
+/**
+ * Night mode for the clock page: dimmer between start and end hour (local
+ * time, may wrap past midnight). Level is the night brightness in percent.
+ */
+bool nightDimEnabled();
+uint8_t nightStartHour();
+uint8_t nightEndHour();
+uint8_t nightLevelPercent();
+/** True when the clock page should be dimmed at this local hour. */
+bool nightDimActive(int hour);
+void saveNightFromPortal(const char* checkbox_value, const char* start, const char* end,
+                         const char* level);
+/**
+ * Overhead alert: jump to the nearest-aircraft page when a plane passes
+ * within alertKm() of home. Holidays: Brazilian holidays on the calendar.
+ */
+bool alertEnabled();
+float alertKm();
+bool showHolidays();
+void saveAlertFromPortal(const char* checkbox_value, const char* km);
+void saveHolidaysFromPortal(const char* checkbox_value);
+/**
+ * Google Agenda link (a Google Apps Script web app, see tools/google-agenda).
+ * Kept only in this device's flash; empty = not configured.
+ */
+const char* agendaUrl();
+void saveAgendaFromPortal(const char* url);
+/** Seconds between automatic page changes (0 = off). */
+uint16_t autoPageSec();
+void saveAutoPageFromPortal(const char* seconds);
 /** Swap red/blue in page colors (panel quirk); settable from the portal. */
 bool swapColors();
 void saveSwapColorsFromPortal(const char* checkbox_value);

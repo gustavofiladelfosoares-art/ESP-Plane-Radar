@@ -6,12 +6,16 @@
   <img src="docs/img/sobre.webp" width="240" alt="Apresentação">
 </p>
 
-Radar de aviões **ao vivo** com o **mapa da sua região**, **clima animado**, **relógio**,
-**avião mais próximo** e **qualidade do ar / UV / sol** — tudo numa telinha redonda de 1,28"
-com um **ESP32-C3**. Sem cadastro e sem chave de API: tudo vem de serviços gratuitos.
+Radar de aviões **ao vivo** com o **mapa da sua região**, **clima animado** com **previsão de
+5 dias e 12 horas**, **relógio** com modo noite, **calendário com feriados**, **sua Google Agenda**,
+**avião mais próximo** com **alerta quando passa por cima**, **resumo do dia no céu** e
+**qualidade do ar / UV / sol** — tudo numa telinha redonda de 1,28" com um **ESP32-C3**.
+Sem cadastro e sem chave de API: tudo vem de serviços gratuitos.
 
-> *English:* live ADS-B plane radar with a map of your area, animated weather, clock, nearest
-> aircraft and air quality on a round 240×240 GC9A01 screen driven by an ESP32-C3. Screens in
+> *English:* live ADS-B plane radar with a map of your area, animated weather with 5-day and
+> 12-hour forecast, clock with night dimming, calendar, Google Calendar agenda, nearest aircraft
+> with overhead alerts, emergency highlighting, daily sky stats and air quality on a round
+> 240×240 GC9A01 screen driven by an ESP32-C3. Screens in
 > Portuguese, English, Spanish or Chinese. One-click browser installer below.
 
 <p align="center">
@@ -28,12 +32,15 @@ com um **ESP32-C3**. Sem cadastro e sem chave de API: tudo vem de serviços grat
 
 | | | |
 |:-:|:-:|:-:|
-| <img src="docs/img/radar.webp" width="200"><br>**Radar** — mapa da região, aviões com voo, tipo, rota, altitude e velocidade | <img src="docs/img/clima_chuva.webp" width="200"><br>**Clima** — céu animado: sol, nuvens chegando, chuva, tempestade, noite com estrelas | <img src="docs/img/relogio.webp" width="200"><br>**Relógio** — ponteiros suaves, data e temperatura |
-| <img src="docs/img/aviao.webp" width="200"><br>**Avião mais próximo** — companhia, rota, direção para olhar, distância, altitude, velocidade | <img src="docs/img/ar_sol.webp" width="200"><br>**Ar, UV e sol** — qualidade do ar, índice UV e o caminho do sol no dia | <img src="docs/img/sobre.webp" width="200"><br>**Apresentação** |
+| <img src="docs/img/radar.webp" width="200"><br>**Radar** — mapa da região, aviões com voo, tipo, rota, altitude e velocidade | <img src="docs/img/clima_chuva.webp" width="200"><br>**Clima** — céu animado: sol, nuvens chegando, chuva, tempestade, noite com estrelas | <img src="docs/img/previsao.webp" width="200"><br>**Próximos 5 dias** — ícones animados, chance de chuva e mínima/máxima |
+| <img src="docs/img/previsao_horas.webp" width="200"><br>**Próximas 12 horas** — curva de temperatura e barras de chuva | <img src="docs/img/relogio.webp" width="200"><br>**Relógio** — ponteiros suaves, data e temperatura | <img src="docs/img/calendario.webp" width="200"><br>**Calendário** — mês, hoje em destaque, feriados e fase da lua |
+| <img src="docs/img/agenda.webp" width="200"><br>**Agenda** — compromissos e tarefas de hoje da sua Google Agenda | <img src="docs/img/aviao.webp" width="200"><br>**Avião mais próximo** — rota, direção para olhar, altitude em metros e pés | <img src="docs/img/resumo.webp" width="200"><br>**Hoje no céu** — quantos aviões passaram, o mais alto, o mais rápido… |
+| <img src="docs/img/aviao_alerta.webp" width="200"><br>**Alerta “sobre você!”** — quando um avião passa bem perto | <img src="docs/img/radar_emergencia.webp" width="200"><br>**Emergência** — avião com código 7700/7600/7500 pisca em vermelho; militares em verde | <img src="docs/img/ar_sol.webp" width="200"><br>**Ar, UV e sol** — qualidade do ar, índice UV e o caminho do sol |
 
 Mais animações: [sol](docs/img/clima_sol.webp) · [nuvens](docs/img/clima_nuvens.webp) ·
 [tempestade](docs/img/clima_tempestade.webp) · [noite](docs/img/clima_noite.webp) ·
-[trocando o raio](docs/img/aviao_raio.webp)
+[trocando o raio](docs/img/aviao_raio.webp) · [emergência na tela do avião](docs/img/aviao_emergencia.webp) ·
+[relógio no modo noite](docs/img/relogio_noite.webp) · [apresentação](docs/img/sobre.webp)
 
 ### Na placa de verdade
 
@@ -41,7 +48,9 @@ Capturas feitas direto da tela da placa (pela USB), com dados reais:
 
 <p align="center">
   <img src="docs/img/real/clima.png" width="160" alt="Clima">
+  <img src="docs/img/real/previsao.png" width="160" alt="Próximos dias">
   <img src="docs/img/real/relogio.png" width="160" alt="Relógio">
+  <img src="docs/img/real/calendario.png" width="160" alt="Calendário">
   <img src="docs/img/real/aviao.png" width="160" alt="Avião mais próximo">
   <img src="docs/img/real/ar_sol.png" width="160" alt="Ar, UV e sol">
   <img src="docs/img/real/sobre.png" width="160" alt="Apresentação">
@@ -64,6 +73,9 @@ Mostra os aviões que estão voando perto de você **em tempo real** (atualiza a
   | 50 km | + altitude (pés) |
   | até 25 km | + **rota** (ex.: `CNF → VCP`) + **velocidade** (km/h) |
 
+- **🚨 Emergência:** avião transmitindo **7700** (emergência), **7600** (falha de rádio) ou
+  **7500** (sequestro) fica **vermelho com anéis pulsando**, e a etiqueta mostra o código (`SQ 7700`).
+- **🎖️ Militares** (ex.: KC-390 da FAB) aparecem em **verde**.
 - **Bolinhas laranja na borda:** aviões que estão fora do zoom atual, na direção certa —
   afaste o zoom e eles aparecem.
 - **Aeroportos:** a pista desenhada no mapa com o código do aeroporto (CNF, GRU, SDU…).
@@ -76,26 +88,74 @@ sol com raios girando, nuvem chegando, chuva caindo, tempestade com relâmpago, 
 neve, e à noite lua com estrelas piscando e estrela cadente.
 Mostra **temperatura**, **sensação térmica**, **mínima e máxima do dia** e **chance de chuva**.
 
-### 🕐 3. Relógio
+### 📅 3. Próximos dias e próximas horas
+Uma tela que **alterna sozinha a cada 10 segundos** (ou com dois toques) entre:
+- **Próximos 5 dias:** dia da semana, ícone animado (sol, nuvem, chuva caindo, raio, neve),
+  chance de chuva e uma **barra de mínima/máxima** colorida do azul (frio) ao vermelho (calor),
+  na mesma escala para a semana inteira — dá para comparar os dias de relance.
+- **Próximas 12 horas:** a **curva da temperatura** se desenhando, com as temperaturas a cada
+  3 horas, e **barras de chance de chuva** hora a hora (a hora mais chuvosa vem marcada).
+
+### 🕐 4. Relógio
 Relógio de ponteiros com **hora certa pela internet** e **fuso horário automático**,
 ponteiro de segundos deslizando, **data**, hora digital e a temperatura atual.
+- **🌙 Modo noite:** das **23h às 7h** a tela do relógio fica **bem fraquinha** (20%), com uma
+  transição suave. Horário e brilho ajustáveis pelo celular, ou desligue se preferir.
+- À noite, com céu limpo, mostra a **fase real da lua** (desenhada como no hemisfério onde você está).
 
-### ✈️ 4. Avião mais próximo
+### 🗓️ 5. Calendário
+- O **mês inteiro**, com **hoje** num círculo azul pulsando, domingos em vermelho e dias que já
+  passaram apagadinhos.
+- **Feriados nacionais do Brasil** em amarelo — inclusive os móveis (Carnaval, Sexta-feira Santa,
+  Corpus Christi), calculados pela própria placa — e o **próximo feriado** embaixo
+  (ex.: “12 OUT • Aparecida”).
+- **Fase da lua** do dia no topo.
+- **Dois toques:** próximo mês (com animação deslizando).
+
+### 📋 6. Agenda (Google Agenda + Google Tasks) — opcional
+- Os **compromissos de hoje** com horário; o **próximo** fica em amarelo com um ponto pulsando e
+  os que já passaram ficam apagados.
+- As **tarefas** do dia com bolinha de marcar (as concluídas aparecem riscadas).
+- Mais de 5 itens? Ela mostra de 5 em 5 e vira a página sozinha.
+- Atualiza a cada 10 minutos; **dois toques** atualizam na hora.
+- A placa **não entra na sua conta Google**: você cria um pequeno script na sua conta que entrega
+  só os itens de hoje por um link secreto. Passo a passo em
+  **[`tools/google-agenda`](tools/google-agenda/README.md)** (uns 5 minutos).
+  Enquanto não configurar, essa tela não aparece.
+
+### ✈️ 7. Avião mais próximo
 Mostra **qual avião está mais perto de você** agora:
 - número do voo, **companhia aérea** e modelo do avião;
 - **rota** (de onde vem → para onde vai, com as cidades), quando disponível;
 - **para onde olhar no céu:** seta com a direção e a distância (ex.: “4,0 km a NE”);
-- **altitude** e **velocidade**;
-- **raio de busca** ajustável com dois toques: 5 → 10 → 20 → 50 km.
+- **altitude alternando entre metros e pés** a cada 3 segundos, e **velocidade**;
+- **raio de busca** ajustável com dois toques: 5 → 10 → 20 → 50 km;
+- avião em **emergência** tem prioridade e aparece com anel vermelho e o selo “EMERGÊNCIA 7700”.
 
-### 🌫️ 5. Ar, UV e sol
+#### 🔔 Alerta “sobre você!”
+Quando um avião passa a **até 3 km** da sua casa, a placa **pula sozinha** para esta tela com um
+**anel laranja pulsando** e o selo **“SOBRE VOCÊ!”** — dá tempo de olhar pela janela. Depois de
+30 segundos ela volta para a tela em que estava. Cada avião avisa no máximo uma vez a cada 15 min;
+não interrompe o radar nem o modo noite. Distância ajustável (ou desligue) pelo celular.
+
+### 📊 8. Hoje no céu
+O resumo do dia, desde a meia-noite:
+- **quantos aviões** a placa viu (o número sobe contando);
+- o **mais alto**, o **mais rápido** e o que passou **mais perto** de você;
+- a **companhia que mais apareceu** (Azul, GOL, LATAM…).
+
+### 🌫️ 9. Ar, UV e sol
 - **Qualidade do ar** (índice AQI) com cor e classificação (boa, moderada, ruim…).
 - **Índice UV** com classificação (baixo, moderado, alto, muito alto, extremo).
 - **Caminho do sol no dia:** um arco com o sol na posição atual, horário do **nascer** e do
   **pôr do sol**, e quanto tempo falta para o pôr (ou para o nascer, à noite).
 
-### ⭐ 6. Apresentação
+### ⭐ 10. Apresentação
 Tela de abertura animada: **PLANE RADAR — made by Gustavo Soares**, com um avião orbitando.
+
+### 🔁 Troca automática de telas
+Opcional: a placa pode **passar sozinha** de uma tela para a outra a cada X segundos, como um
+painel (configurável pelo celular).
 
 ### 🌍 Idiomas
 **Português, English, Español e 中文** — escolha em *Localização e opções* pelo celular.
@@ -105,7 +165,8 @@ Todas as telas mudam (textos, datas, pontos cardeais e formato dos números).
 
 ### ⚙️ Configuração pelo celular
 Sem instalar app: a placa cria uma página própria para configurar pelo navegador do celular —
-Wi-Fi, localização, idioma, milhas/km, pistas dos aeroportos, varredura e correção de cores.
+Wi-Fi, localização, idioma, milhas/km, pistas dos aeroportos, varredura, modo noite, alerta de
+avião, feriados, troca automática de telas, Google Agenda e correção de cores.
 Tudo fica salvo na placa (pode desligar da tomada à vontade). Se o Wi-Fi cair ou o roteador
 demorar para voltar depois de uma queda de luz, a placa **reconecta sozinha**.
 
@@ -175,6 +236,11 @@ Depois, com o celular no mesmo Wi-Fi, abra **`http://plane-radar.local`** → **
 - distâncias em milhas
 - pistas dos aeroportos
 - **varredura girando no radar** (liga/desliga)
+- **relógio mais fraco à noite** — liga/desliga, hora de começar e terminar, brilho (%)
+- **avisar quando um avião passar por cima** — liga/desliga e distância (km)
+- **feriados do Brasil** no calendário
+- **trocar de tela sozinho** a cada X segundos (0 = nunca)
+- **link da Google Agenda** ([como criar](tools/google-agenda/README.md))
 - **corrigir cores** (se vermelho e azul aparecerem trocados na sua tela)
 
 ## Botão BOOT
@@ -182,7 +248,7 @@ Depois, com o celular no mesmo Wi-Fi, abra **`http://plane-radar.local`** → **
 | Gesto | Ação |
 |-------|------|
 | **Toque** | Próxima tela |
-| **Dois toques** | No radar: muda o zoom · No “avião mais próximo”: muda o raio (5 → 10 → 20 → 50 km) |
+| **Dois toques** | No radar: muda o zoom · Avião mais próximo: muda o raio (5 → 10 → 20 → 50 km) · Próximos dias: alterna dias/horas · Calendário: próximo mês · Agenda: atualiza agora |
 | **Segurar 3 s** | Apaga o Wi-Fi e volta para a configuração |
 
 ---
@@ -218,7 +284,11 @@ uma por vez, mostrando cores e um número grande. O número que aparecer indica 
 ## Como funciona (resumo técnico)
 
 - **Duas tarefas**: a interface desenha as animações; uma tarefa de rede busca os dados em
-  segundo plano (aviões a cada 3 s, clima a cada 10 min, ar/UV a cada 30 min).
+  segundo plano (aviões a cada 3 s, clima e previsão a cada 10 min, ar/UV a cada 30 min,
+  agenda a cada 10 min). Fora das telas de aviões, a placa olha só uma área pequena em volta de
+  casa a cada 10 s, para o alerta “sobre você”.
+- O **modo noite** escurece a imagem pixel a pixel (com pontilhado para não marcar degraus nos
+  degradês), porque a luz de fundo da tela fica ligada direto no 3,3 V.
 - A tela é desenhada **em duas metades** com um buffer de 57 KB — sobra memória para as conexões HTTPS.
 - O ESP32-C3 **não tem FPU**, então os desenhos usam triângulos e contas inteiras sempre que possível.
 - O mapa é montado a partir de imagens de mapa (JPEG) classificadas em água / cidade / estrada
@@ -229,7 +299,8 @@ uma por vez, mostrando cores e um número grande. O número que aparecer indica 
 
 - **Projeto original:** [ESP32-Plane-Radar](https://github.com/MatixYo/ESP32-Plane-Radar) por **MatixYo** (MIT) — o radar e a ideia base.
 - **Aviões:** [adsb.fi](https://opendata.adsb.fi/) · **Rotas:** [adsbdb](https://www.adsbdb.com/)
-- **Clima, ar e UV:** [Open-Meteo](https://open-meteo.com/)
+- **Clima, previsão, ar e UV:** [Open-Meteo](https://open-meteo.com/)
+- **Agenda (opcional):** Google Agenda e Google Tasks, pelo script do próprio usuário (Google Apps Script)
 - **Mapa:** Esri World Dark Gray Base — © Esri, HERE, Garmin, © OpenStreetMap contributors
 - **Bibliotecas:** [LovyanGFX](https://github.com/lovyan03/LovyanGFX), [WiFiManager](https://github.com/tzapu/WiFiManager), [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
 - **Fontes:** Noto Sans e Noto Sans SC (SIL Open Font License — [`data/fonts/OFL.txt`](data/fonts/OFL.txt), [`data/fonts/OFL-NotoSansSC.txt`](data/fonts/OFL-NotoSansSC.txt))

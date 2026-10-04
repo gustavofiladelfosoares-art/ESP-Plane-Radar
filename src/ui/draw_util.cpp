@@ -361,4 +361,69 @@ void triangleMark(lgfx::LovyanGFX& g, int cx, int cy, bool up, uint16_t color) {
   }
 }
 
+void dimPixels(uint16_t* px, int width, int rows, int y0, uint16_t level) {
+  if (level >= 256) {
+    return;
+  }
+  // 4×4 Bayer matrix, scaled to 0..255 (added before the >> 8).
+  static constexpr uint8_t kBayer[16] = {0,   136, 34,  170, 204, 68,  238, 102,
+                                         51,  187, 17,  153, 255, 119, 221, 85};
+  for (int y = 0; y < rows; ++y) {
+    const uint8_t* row = kBayer + ((y0 + y) & 3) * 4;
+    uint16_t* p = px + y * width;
+    for (int x = 0; x < width; ++x) {
+      const uint16_t v = p[x];
+      if (v == 0) {
+        continue;
+      }
+      const uint16_t c = static_cast<uint16_t>((v >> 8) | (v << 8));
+      const uint32_t d = row[x & 3];
+      const uint32_t r = (((c >> 11) & 0x1F) * level + d) >> 8;
+      const uint32_t gg = (((c >> 5) & 0x3F) * level + d) >> 8;
+      const uint32_t b = ((c & 0x1F) * level + d) >> 8;
+      const uint16_t o = static_cast<uint16_t>((r << 11) | (gg << 5) | b);
+      p[x] = static_cast<uint16_t>((o >> 8) | (o << 8));
+    }
+  }
+}
+
+float moonPhase(int y, int m, int d) {
+  // Days since 1970-01-01 (proleptic Gregorian), then synodic months since a
+  // known new moon: 2000-01-06 18:14 UTC = day 10962.76.
+  const int yy = y - (m <= 2);
+  const long era = (yy >= 0 ? yy : yy - 399) / 400;
+  const long yoe = yy - era * 400;
+  const long doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+  const long days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
+  constexpr double kSynodic = 29.530588853;
+  double p = fmod((days + 0.5 - 10962.76) / kSynodic, 1.0);
+  if (p < 0) p += 1.0;
+  return static_cast<float>(p);
+}
+
+void moonPhaseIcon(lgfx::LovyanGFX& g, int cx, int cy, int r, float phase, bool south,
+                   const Rgb& bg, float p) {
+  const Rgb dark = lerp(bg, Rgb{48, 58, 84}, p);
+  const Rgb lit = lerp(bg, Rgb{246, 240, 214}, p);
+  g.fillSmoothCircle(cx, cy, r + 3, mix(bg, Rgb{40, 60, 100}, 0.35f * p));
+  g.fillSmoothCircle(cx, cy, r, rgb(dark));
+  const float k = cosf(phase * 2.0f * kPi);
+  const bool waxing = phase < 0.5f;
+  for (int dy = -r; dy <= r; ++dy) {
+    const float w = sqrtf(static_cast<float>(r * r - dy * dy)) - 0.3f;
+    float x0 = waxing ? w * k : -w;
+    float x1 = waxing ? w : -w * k;
+    if (south) {
+      const float t0 = -x1;
+      x1 = -x0;
+      x0 = t0;
+    }
+    const int a = static_cast<int>(lroundf(x0));
+    const int b = static_cast<int>(lroundf(x1));
+    if (b > a) {
+      g.drawFastHLine(cx + a, cy + dy, b - a, rgb(lit));
+    }
+  }
+}
+
 }  // namespace ui::draw
